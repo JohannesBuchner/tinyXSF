@@ -63,7 +63,7 @@ def bins_sum(values, edges, lo, hi):
     return np.sum(widths * values * fracs)
 
 
-def bins_integrate1(values, edges, lo, hi):
+def bins_integrate1(values, edges, lo, hi, axis=None):
     """Integrate up bin values.
 
     Parameters
@@ -76,6 +76,8 @@ def bins_integrate1(values, edges, lo, hi):
         lower limit
     hi: float
         upper limit
+    axis: int | None
+        summing axis
 
     Returns
     -------
@@ -84,10 +86,10 @@ def bins_integrate1(values, edges, lo, hi):
     """
     mids = (edges[1:] + edges[:-1]) / 2.0
     fracs = frac_overlap_interval(edges, lo, hi)
-    return float(np.sum(mids * values * fracs))
+    return np.sum(mids * fracs * values, axis=axis)
 
 
-def bins_integrate(values, edges, lo, hi):
+def bins_integrate(values, edges, lo, hi, axis=None):
     """Integrate up bin values.
 
     Parameters
@@ -100,16 +102,18 @@ def bins_integrate(values, edges, lo, hi):
         lower limit
     hi: float
         upper limit
+    axis: int | None
+        summing axis
 
     Returns
     -------
     I: float
         values integrated from bins between lo and hi.
     """
-    return np.sum(values * frac_overlap_interval(edges, lo, hi))
+    return np.sum(values * frac_overlap_interval(edges, lo, hi), axis=axis)
 
 
-def photon_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi):
+def photon_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi, axis=None):
     """Compute photon flux.
 
     Parameters
@@ -122,6 +126,8 @@ def photon_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi):
         lower limit
     energy_hi: float
         upper limit
+    axis: int | None
+        summing axis
 
     Returns
     -------
@@ -131,11 +137,11 @@ def photon_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi):
     Nchan = len(energies) - 1
     assert unfolded_model_spectrum.shape == (Nchan,)
     assert energies.shape == (Nchan + 1,)
-    integral = bins_integrate(unfolded_model_spectrum, energies, energy_lo, energy_hi)
+    integral = bins_integrate(unfolded_model_spectrum, energies, energy_lo, energy_hi, axis=axis)
     return integral / u.cm**2 / u.s
 
 
-def energy_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi):
+def energy_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi, axis=None):
     """Compute energy flux.
 
     Parameters
@@ -148,6 +154,8 @@ def energy_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi):
         lower limit
     energy_hi: float
         upper limit
+    axis: int | None
+        summing axis
 
     Returns
     -------
@@ -155,9 +163,9 @@ def energy_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi):
         Energy flux in erg/cm^2/s
     """
     Nchan = len(energies) - 1
-    assert unfolded_model_spectrum.shape == (Nchan,)
+    assert unfolded_model_spectrum.shape[-1] == Nchan
     assert energies.shape == (Nchan + 1,)
-    integral1 = bins_integrate1(unfolded_model_spectrum, energies, energy_lo, energy_hi)
+    integral1 = bins_integrate1(unfolded_model_spectrum, energies, energy_lo, energy_hi, axis=axis)
     return integral1 * ((1 * u.keV).to(u.erg)) / u.cm**2 / u.s
 
 
