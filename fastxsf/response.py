@@ -511,16 +511,15 @@ class RMF(object):
         counts : numpy.ndarray
             The (model) spectrum after folding, in counts/s/channel
         """
-        import tqdm
-
         # get the number of channels in the data
         nspecs, nchannels = specs.shape
         if self.dense_info is not None:  # and nspecs < 40:
-            # in_indices, out_indices, weights = self.dense_info
+            in_indices, out_indices, weights = self.dense_info
             out = np.zeros((nspecs, self.detchans))
-            for i in tqdm.trange(nspecs):
+            for i in range(nspecs):
                 # out[i] = np.bincount(out_indices, weights=specs[i,in_indices] * weights, minlength=self.detchans)
-                out[i] = self._apply_rmf(specs[i])
+                # out[i] = self._apply_rmf(specs[i])
+                out[i] = jax.numpy.zeros(self.detchans).at[out_indices].add(specs[i,in_indices] * weights)
             # out = self._apply_rmf_vectorized(specs)
             return out
 
@@ -534,7 +533,7 @@ class RMF(object):
         resp_idx = 0
 
         # loop over all channels
-        for i in tqdm.trange(nchannels):
+        for i in range(nchannels):
             # this is the current bin in the flux spectrum to
             # be folded
             source_bin_i = specs[:,i]
