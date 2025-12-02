@@ -160,8 +160,8 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
 
     if os.path.exists(backfile + "_model.fits"):
         bkg_model = pyfits.getdata(backfile + "_model.fits", "SPECTRA")
-        data["bkg_model_src_region"] = np.array(bkg_model[0]["INTPSPEC"][mask])
-        data["bkg_model_bkg_region"] = np.array(bkg_model[1]["INTPSPEC"][mask])
+        data["bkg_model_bkg_region"] = np.array(bkg_model[0]["INTPSPEC"][mask])
+        data["bkg_model_src_region"] = np.array(bkg_model[1]["INTPSPEC"][mask])
     if os.path.exists(filename + ".nh") and load_absorption:
         data["galnh"] = float(np.loadtxt(filename + ".nh") / 1e22)
     if z is not None:
