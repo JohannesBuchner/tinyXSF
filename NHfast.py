@@ -6,16 +6,16 @@ import numpy as np
 import tqdm
 from matplotlib import pyplot as plt
 from optns.profilelike import ComponentModel
-import fastxsf
-from fastxsf.flux import luminosity
-from fastxsf.model import FixedTable
+import tinyxsf
+from tinyxsf.flux import luminosity
+from tinyxsf.model import FixedTable
 
 cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.730)
 
 
-# fastxsf.x.chatter(0)
-fastxsf.x.abundance('wilm')
-fastxsf.x.cross_section('vern')
+# tinyxsf.x.chatter(0)
+tinyxsf.x.abundance('wilm')
+tinyxsf.x.cross_section('vern')
 
 PhoIndex_grid = np.arange(1, 3.1, 0.1)
 PhoIndex_grid[-1] = 3.0
@@ -25,7 +25,7 @@ filename = sys.argv[1]
 
 elo = 0.3
 ehi = 8
-data = fastxsf.load_pha(filename, elo, ehi)
+data = tinyxsf.load_pha(filename, elo, ehi)
 # fetch some basic information about our spectrum
 e_lo = data['e_lo']
 e_hi = data['e_hi']
@@ -36,7 +36,7 @@ RMF_src = data['RMF_src']
 #chan_e = (data['chan_e_min'] + data['chan_e_max']) / 2.
 
 # pre-compute the absorption factors -- no need to call this again and again if the parameters do not change!
-galabso = fastxsf.x.TBabs(energies=energies, pars=[data['galnh']])
+galabso = tinyxsf.x.TBabs(energies=energies, pars=[data['galnh']])
 
 z = data['redshift']
 absAGN = FixedTable(
@@ -90,7 +90,7 @@ for i, PhoIndex in enumerate(tqdm.tqdm(PhoIndex_grid)):
         profile_like[i,j] = -res.fun
         srcnorm = np.exp(norms[0])
         Lint[i,j] = np.log10(luminosity(
-            srcnorm * fastxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z]),
+            srcnorm * tinyxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z]),
             energies, 2, 10, z, cosmo
         ) / (u.erg/u.s))
 # plot likelihoods and 

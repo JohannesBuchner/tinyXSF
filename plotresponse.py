@@ -2,13 +2,13 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import fastxsf
+import tinyxsf
 
 filename = sys.argv[1]
 elo = float(sys.argv[2])
 ehi = float(sys.argv[3])
 
-data = fastxsf.load_pha(filename, elo, ehi)
+data = tinyxsf.load_pha(filename, elo, ehi)
 plt.imshow(data['RMF'], cmap='viridis')
 plt.colorbar()
 plt.xlabel('Energy')

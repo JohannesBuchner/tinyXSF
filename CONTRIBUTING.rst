@@ -15,7 +15,7 @@ Types of Contributions
 Report Bugs
 ~~~~~~~~~~~
 
-Report bugs at https://github.com/JohannesBuchner/fastxsf/issues.
+Report bugs at https://github.com/JohannesBuchner/tinyxsf/issues.
 
 If you are reporting a bug, please include:
 
@@ -38,16 +38,16 @@ and "help wanted" is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-fastxsf could always use more documentation, whether as part of the
-official fastxsf docs, in docstrings, or even on the web in blog posts,
+tinyxsf could always use more documentation, whether as part of the
+official tinyxsf docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
-Notebooks demonstrating how to use fastxsf are also appreciated.
+Notebooks demonstrating how to use tinyxsf are also appreciated.
 
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/JohannesBuchner/fastxsf/issues.
+The best way to send feedback is to file an issue at https://github.com/JohannesBuchner/tinyxsf/issues.
 
 If you are proposing a feature:
 
@@ -59,17 +59,17 @@ If you are proposing a feature:
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `fastxsf` for local development.
+Ready to contribute? Here's how to set up `tinyxsf` for local development.
 
-1. Fork the `fastxsf` repo on GitHub.
+1. Fork the `tinyxsf` repo on GitHub.
 2. Clone your fork locally::
 
-    $ git clone git@github.com:JohannesBuchner/fastxsf.git
+    $ git clone git@github.com:JohannesBuchner/tinyxsf.git
 
 3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
 
-    $ mkvirtualenv fastxsf
-    $ cd fastxsf/
+    $ mkvirtualenv tinyxsf
+    $ cd tinyxsf/
     $ python setup.py develop
 
 4. Create a branch for local development::
@@ -81,7 +81,7 @@ Ready to contribute? Here's how to set up `fastxsf` for local development.
 5. When you're done making changes, check that your changes pass flake8 and the
    tests, including testing other Python versions with tox::
 
-    $ flake8 fastxsf tests
+    $ flake8 tinyxsf tests
     $ PYTHONPATH=. pytest
     $ tox
 
@@ -105,7 +105,7 @@ Before you submit a pull request, check that it meets these guidelines:
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
 3. The pull request should work for Python 2.7, 3.5, 3.6 and 3.7, and for PyPy. Check
-   https://github.com/JohannesBuchner/fastxsf/actions/
+   https://github.com/JohannesBuchner/tinyxsf/actions/
    and make sure that the tests pass for all supported Python versions.
 
 Tips

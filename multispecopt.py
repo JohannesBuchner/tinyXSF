@@ -19,11 +19,11 @@ from astropy.cosmology import LambdaCDM
 
 cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.730)
 
-import fastxsf
+import tinyxsf
 
-# fastxsf.x.chatter(0)
-fastxsf.x.abundance('wilm')
-fastxsf.x.cross_section('vern')
+# tinyxsf.x.chatter(0)
+tinyxsf.x.abundance('wilm')
+tinyxsf.x.cross_section('vern')
 
 # let's take a realistic example of a Chandra + NuSTAR FPMA + FPMB spectrum
 # with normalisation cross-calibration uncertainty of +-0.2 dex.
@@ -36,16 +36,16 @@ fastxsf.x.cross_section('vern')
 filepath = '/mnt/data/daten/PostDoc2/research/agn/eROSITA/xlf/xrayspectra/NuSTARenhance/COSMOS/spectra/102/'
 
 data_sets = {
-    'Chandra': fastxsf.load_pha(filepath + 'C.pha', 0.5, 8),
-    'NuSTAR-FPMA': fastxsf.load_pha(filepath + 'A.pha', 4, 77),
-    'NuSTAR-FPMB': fastxsf.load_pha(filepath + 'B.pha', 4, 77),
+    'Chandra': tinyxsf.load_pha(filepath + 'C.pha', 0.5, 8),
+    'NuSTAR-FPMA': tinyxsf.load_pha(filepath + 'A.pha', 4, 77),
+    'NuSTAR-FPMB': tinyxsf.load_pha(filepath + 'B.pha', 4, 77),
 }
 
 redshift = data_sets['Chandra']['redshift']
 
 # pre-compute the absorption factors -- no need to call this again and again if the parameters do not change!
 galabsos = {
-    k: fastxsf.x.TBabs(energies=data['energies'], pars=[data['galnh']])
+    k: tinyxsf.x.TBabs(energies=data['energies'], pars=[data['galnh']])
     for k, data in data_sets.items()
 }
 
@@ -54,17 +54,17 @@ tablepath = os.path.join(os.environ.get('MODELDIR', '.'), 'uxclumpy-cutoff.fits'
 import time
 t0 = time.time()
 print("preparing fixed table models...")
-absAGN = fastxsf.model.Table(tablepath)
+absAGN = tinyxsf.model.Table(tablepath)
 print(f'took {time.time() - t0:.3f}s')
 t0 = time.time()
 print("preparing folded table models...")
 absAGNs = {
-    k: fastxsf.model.FixedTable(
+    k: tinyxsf.model.FixedTable(
         tablepath, energies=data['energies'], redshift=redshift)
     for k, data in data_sets.items()
 }
 absAGN_folded = {
-    k: fastxsf.model.FixedFoldedTable(
+    k: tinyxsf.model.FixedFoldedTable(
         tablepath, energies=data['energies'], ARF=data['ARF'] * galabsos[k], RMF=data['RMF_src'], redshift=redshift, fix=dict(Ecut=400, Theta_inc=60))
     for k, data in data_sets.items()
 }
@@ -72,11 +72,11 @@ print(f'took {time.time() - t0:.3f}s')
 t0 = time.time()
 print("preparing 1d interpolated models...")
 scat_folded = {
-    k: fastxsf.model.prepare_folded_model1d(fastxsf.x.zpowerlw, pars=[np.arange(1.0, 3.1, 0.01), redshift], energies=data['energies'], ARF=data['ARF'] * galabsos[k], RMF=data['RMF_src'])
+    k: tinyxsf.model.prepare_folded_model1d(tinyxsf.x.zpowerlw, pars=[np.arange(1.0, 3.1, 0.01), redshift], energies=data['energies'], ARF=data['ARF'] * galabsos[k], RMF=data['RMF_src'])
     for k, data in data_sets.items()
 }
 apec_folded = {
-    k: fastxsf.model.prepare_folded_model1d(fastxsf.x.apec, pars=[10**np.arange(-2, 1.2, 0.01), 1.0, redshift], energies=data['energies'], ARF=data['ARF'] * galabsos[k], RMF=data['RMF_src'])
+    k: tinyxsf.model.prepare_folded_model1d(tinyxsf.x.apec, pars=[10**np.arange(-2, 1.2, 0.01), 1.0, redshift], energies=data['energies'], ARF=data['ARF'] * galabsos[k], RMF=data['RMF_src'])
     for k, data in data_sets.items()
 }
 print(f'took {time.time() - t0:.3f}s')
@@ -375,7 +375,7 @@ def compute_model_components_simple_unfolded(params):
     logNH, PhoIndex, TORsigma, CTKcover, kT = params
 
     # compute model components for each data set:
-    apec_components = deduplicated_evaluation(fastxsf.x.apec, pars=[kT, 1.0, redshift])
+    apec_components = deduplicated_evaluation(tinyxsf.x.apec, pars=[kT, 1.0, redshift])
 
     pred_spectra = {}
     for k, data in data_sets.items():
@@ -385,10 +385,10 @@ def compute_model_components_simple_unfolded(params):
             10**(logNH - 22), PhoIndex, Ecut, TORsigma, CTKcover, Incl])
 
         # second component, a copy of the unabsorbed power law
-        scat_component = fastxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, redshift])
+        scat_component = tinyxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, redshift])
 
         # third component, a apec model
-        # apec_component = np.clip(fastxsf.x.apec(energies=energies, pars=[kT, 1.0, redshift]), 0, None)
+        # apec_component = np.clip(tinyxsf.x.apec(energies=energies, pars=[kT, 1.0, redshift]), 0, None)
         apec_component = np.clip(apec_components[k], 0, None)
 
         background_component = data['bkg_model_src_region'] * data['src_expoarea']
@@ -448,9 +448,9 @@ def compute_model_components_intrinsic(params, energies):
     pred_spectra = []
     pred_spectra.append(energies[:-1] * 0)
     pred_spectra.append(absAGN(energies=energies, pars=[0.01, PhoIndex, Ecut, TORsigma, CTKcover, Incl, redshift]))
-    scat = fastxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, redshift])
+    scat = tinyxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, redshift])
     pred_spectra.append(scat)
-    apec = np.clip(fastxsf.x.apec(energies=energies, pars=[kT, 1.0, redshift]), 0, None)
+    apec = np.clip(tinyxsf.x.apec(energies=energies, pars=[kT, 1.0, redshift]), 0, None)
     pred_spectra.append(apec)
     return pred_spectra
 
@@ -635,7 +635,7 @@ pp.posterior_predictive_check_plot(fig.gca(), samples[:40], y_pred_samples[:40],
 plt.savefig('multispecopt-ppc.pdf')
 plt.close()
 
-from fastxsf.flux import luminosity, energy_flux
+from tinyxsf.flux import luminosity, energy_flux
 import astropy.units as u
 
 luminosities = []

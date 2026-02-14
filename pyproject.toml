@@ -4,7 +4,7 @@ requires = ["setuptools", "wheel"]  # PEP 508 specifications.
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fastxsf"
+name = "tinyxsf"
 version = "1.1.0"
 description = "Fast X-ray spectral fitting"
 readme = "README.rst"

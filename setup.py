@@ -25,10 +25,10 @@ setup(
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, !=3.7.*, !=3.8.*',
     install_requires=requirements,
     long_description=readme + '\n\n' + history,
-    name='fastxsf',
-    packages=['fastxsf'],
+    name='tinyxsf',
+    packages=['tinyxsf'],
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/JohannesBuchner/fastXSF',
+    url='https://github.com/JohannesBuchner/tinyXSF',
 )

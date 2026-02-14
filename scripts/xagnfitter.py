@@ -5,17 +5,17 @@ import scipy.stats
 import ultranest
 from matplotlib import pyplot as plt
 
-import fastxsf
-import fastxsf.flux
+import tinyxsf
+import tinyxsf.flux
 import sys
 import astropy.units as u
 
-# fastxsf.x.chatter(0)
-fastxsf.x.abundance('wilm')
-fastxsf.x.cross_section('vern')
+# tinyxsf.x.chatter(0)
+tinyxsf.x.abundance('wilm')
+tinyxsf.x.cross_section('vern')
 
 # load the spectrum, where we will consider data from 0.5 to 8 keV
-data = fastxsf.load_pha(sys.argv[1], float(os.environ['ELO']), float(os.environ['EHI']))
+data = tinyxsf.load_pha(sys.argv[1], float(os.environ['ELO']), float(os.environ['EHI']))
 
 # fetch some basic information about our spectrum
 e_lo = data['e_lo']
@@ -28,10 +28,10 @@ RMF_src = data['RMF_src']
 chan_e = (data['chan_e_min'] + data['chan_e_max']) / 2.
 
 # load a Table model
-absAGN = fastxsf.Table(os.path.join(os.environ.get('MODELDIR', '.'), 'uxclumpy-cutoff.fits'))
+absAGN = tinyxsf.Table(os.path.join(os.environ.get('MODELDIR', '.'), 'uxclumpy-cutoff.fits'))
 
 # pre-compute the absorption factors -- no need to call this again and again if the parameters do not change!
-galabso = fastxsf.x.TBabs(energies=energies, pars=[data['galnh']])
+galabso = tinyxsf.x.TBabs(energies=energies, pars=[data['galnh']])
 
 def setup_model(params):
     lognorm, logNH22, logrel_scat_norm, PhoIndex, TORsigma, CTKcover, z, bkg_norm = np.transpose(params)
@@ -45,14 +45,14 @@ def setup_model(params):
         norm)
 
     scat_component = np.einsum('ij,i->ij',
-        fastxsf.xvec(fastxsf.x.zpowerlw, energies=energies, pars=np.transpose([PhoIndex, z])),
+        tinyxsf.xvec(tinyxsf.x.zpowerlw, energies=energies, pars=np.transpose([PhoIndex, z])),
         scat_norm)
 
     return abs_component, scat_component
 
 def get_flux(params, e_min, e_max):
     abs_component, scat_component = setup_model(params)
-    return fastxsf.flux.energy_flux(galabso * (abs_component + scat_component), energies, e_min, e_max, axis=1)
+    return tinyxsf.flux.energy_flux(galabso * (abs_component + scat_component), energies, e_min, e_max, axis=1)
 
 
 # define a likelihood
@@ -116,8 +116,8 @@ def loglikelihood(params, plot=False, plot_prefix=''):
         plt.close()
 
     # compute log Poisson probability
-    like_srcreg = fastxsf.logPoissonPDF_vectorized(pred_counts_srcreg, data['src_region_counts'])
-    like_bkgreg = fastxsf.logPoissonPDF_vectorized(pred_counts_bkg_bkgreg, data['bkg_region_counts'])
+    like_srcreg = tinyxsf.logPoissonPDF_vectorized(pred_counts_srcreg, data['src_region_counts'])
+    like_bkgreg = tinyxsf.logPoissonPDF_vectorized(pred_counts_bkg_bkgreg, data['bkg_region_counts'])
     # combined the probabilities. If fitting multiple spectra, you would add them up here as well
     return like_srcreg + like_bkgreg
 
@@ -196,20 +196,20 @@ def main():
     #sampler.plot()
     samples = results['samples'].copy()
     abs_component, scat_component = setup_model(samples)
-    soft_flux_obs = fastxsf.flux.energy_flux(galabso * (abs_component + scat_component), energies, 0.5, 2, axis=1)
-    hard_flux_obs = fastxsf.flux.energy_flux(galabso * (abs_component + scat_component), energies, 2, 10, axis=1)
+    soft_flux_obs = tinyxsf.flux.energy_flux(galabso * (abs_component + scat_component), energies, 0.5, 2, axis=1)
+    hard_flux_obs = tinyxsf.flux.energy_flux(galabso * (abs_component + scat_component), energies, 2, 10, axis=1)
     print('soft flux obs:', soft_flux_obs.min(), soft_flux_obs.max(), soft_flux_obs.mean(), soft_flux_obs.std())
     print('hard flux obs:', hard_flux_obs.min(), hard_flux_obs.max(), hard_flux_obs.mean(), hard_flux_obs.std())
     print("setting NH to zero")
     samples[:,1] = -2
     samples[:,2] = -5
     abs_component, scat_component = setup_model(samples)
-    soft_flux = fastxsf.flux.energy_flux(abs_component, energies, 0.5, 2, axis=1)
-    hard_flux = fastxsf.flux.energy_flux(abs_component, energies, 2, 10, axis=1)
+    soft_flux = tinyxsf.flux.energy_flux(abs_component, energies, 0.5, 2, axis=1)
+    hard_flux = tinyxsf.flux.energy_flux(abs_component, energies, 2, 10, axis=1)
     hard_flux_restintr = np.empty(len(samples))
     for i, row in enumerate(samples):
         z = row[6]
-        hard_flux_restintr[i] = fastxsf.flux.energy_flux(abs_component[i, :], energies, 2 / (1 + z), 10 / (1 + z)).to_value(u.erg / u.cm**2 / u.s)
+        hard_flux_restintr[i] = tinyxsf.flux.energy_flux(abs_component[i, :], energies, 2 / (1 + z), 10 / (1 + z)).to_value(u.erg / u.cm**2 / u.s)
 
     print('soft flux:', soft_flux.min(), soft_flux.max(), soft_flux.mean(), soft_flux.std())
     print('hard flux:', hard_flux.min(), hard_flux.max(), hard_flux.mean(), hard_flux.std())

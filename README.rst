@@ -3,17 +3,17 @@ FastXSF
 
 Fast X-ray spectral fitting.
 
-.. image:: https://img.shields.io/pypi/v/fastxsf.svg
-        :target: https://pypi.python.org/pypi/fastxsf
+.. image:: https://img.shields.io/pypi/v/tinyxsf.svg
+        :target: https://pypi.python.org/pypi/tinyxsf
 
-.. image:: https://github.com/JohannesBuchner/fastxsf/actions/workflows/tests.yml/badge.svg
-        :target: https://github.com/JohannesBuchner/fastxsf/actions/workflows/tests.yml
+.. image:: https://github.com/JohannesBuchner/tinyxsf/actions/workflows/tests.yml/badge.svg
+        :target: https://github.com/JohannesBuchner/tinyxsf/actions/workflows/tests.yml
 
-.. image:: https://coveralls.io/repos/github/JohannesBuchner/fastxsf/badge.svg?branch=main
-	:target: https://coveralls.io/github/JohannesBuchner/fastxsf?branch=main
+.. image:: https://coveralls.io/repos/github/JohannesBuchner/tinyxsf/badge.svg?branch=main
+	:target: https://coveralls.io/github/JohannesBuchner/tinyxsf?branch=main
 
-.. image:: https://img.shields.io/badge/GitHub-JohannesBuchner%2Ffastxsf-blue.svg?style=flat
-        :target: https://github.com/JohannesBuchner/fastxsf/
+.. image:: https://img.shields.io/badge/GitHub-JohannesBuchner%2Ftinyxsf-blue.svg?style=flat
+        :target: https://github.com/JohannesBuchner/tinyxsf/
         :alt: Github repository
 
 Background
@@ -109,7 +109,7 @@ Todo
 ----
 
 * ✓ Profile where the code is still slow.
-* ✓ There is a python loop in fastxsf/model.py::Table.__call__ which should be replaced with something smarter
+* ✓ There is a python loop in tinyxsf/model.py::Table.__call__ which should be replaced with something smarter
 * ✓ Compute fluxes and luminosities.
 * ✓ Create some unit tests for loading and evaluating atables/mtables, poisson probability, plotting ARF/RMF.
 * ✓ Make a atable that is precomputed for a given rest-frame energy grid at fixed redshift. -> FixedTable

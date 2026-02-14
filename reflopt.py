@@ -15,14 +15,14 @@ import scipy.stats
 from matplotlib import pyplot as plt
 from optns.sampler import OptNS
 
-import fastxsf
+import tinyxsf
 
-# fastxsf.x.chatter(0)
-fastxsf.x.abundance('wilm')
-fastxsf.x.cross_section('vern')
+# tinyxsf.x.chatter(0)
+tinyxsf.x.abundance('wilm')
+tinyxsf.x.cross_section('vern')
 
 # load the spectrum, where we will consider data from 0.5 to 8 keV
-data = fastxsf.load_pha('example/179.pi', 0.5, 8)
+data = tinyxsf.load_pha('example/179.pi', 0.5, 8)
 
 # fetch some basic information about our spectrum
 e_lo = data['e_lo']
@@ -35,7 +35,7 @@ RMF_src = data['RMF_src']
 chan_e = (data['chan_e_min'] + data['chan_e_max']) / 2.
 
 # pre-compute the absorption factors -- no need to call this again and again if the parameters do not change!
-galabso = fastxsf.x.TBabs(energies=energies, pars=[data['galnh']])
+galabso = tinyxsf.x.TBabs(energies=energies, pars=[data['galnh']])
 
 z = data['redshift']
 # define the model parameters:
@@ -65,13 +65,13 @@ def compute_model_components(params):
 
     # first component: a absorbed power law
 
-    pl = fastxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z])
-    abso = fastxsf.x.zTBabs(energies=energies, pars=[10**(logNH - 22), z])
+    pl = tinyxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z])
+    abso = tinyxsf.x.zTBabs(energies=energies, pars=[10**(logNH - 22), z])
     plabso = pl * abso
 
     # second component, a disk reflection
     Eline = 6.4  # keV
-    refl = fastxsf.x.diskline(energies=energies, pars=[Eline, emissivityPL, Rin, Rout, incl])
+    refl = tinyxsf.x.diskline(energies=energies, pars=[Eline, emissivityPL, Rin, Rout, incl])
 
     # third component, a copy of the unabsorbed power law
     scat = pl

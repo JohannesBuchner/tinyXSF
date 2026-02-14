@@ -4,14 +4,14 @@ import numpy as np
 import scipy.stats
 from matplotlib import pyplot as plt
 
-import fastxsf
+import tinyxsf
 
-# fastxsf.x.chatter(0)
-fastxsf.x.abundance('wilm')
-fastxsf.x.cross_section('vern')
+# tinyxsf.x.chatter(0)
+tinyxsf.x.abundance('wilm')
+tinyxsf.x.cross_section('vern')
 
 # load the spectrum, where we will consider data from 0.5 to 8 keV
-data = fastxsf.load_pha('example/179.pi', 0.5, 8)
+data = tinyxsf.load_pha('example/179.pi', 0.5, 8)
 
 # fetch some basic information about our spectrum
 e_lo = data['e_lo']
@@ -24,10 +24,10 @@ RMF_src = data['RMF_src']
 chan_e = (data['chan_e_min'] + data['chan_e_max']) / 2.
 
 # load a Table model
-absAGN = fastxsf.Table(os.path.join(os.environ.get('MODELDIR', '.'), 'uxclumpy-cutoff.fits'))
+absAGN = tinyxsf.Table(os.path.join(os.environ.get('MODELDIR', '.'), 'uxclumpy-cutoff.fits'))
 
 # pre-compute the absorption factors -- no need to call this again and again if the parameters do not change!
-galabso = fastxsf.x.TBabs(energies=energies, pars=[data['galnh']])
+galabso = tinyxsf.x.TBabs(energies=energies, pars=[data['galnh']])
 
 z = data['redshift']
 # define the model parameters:
@@ -50,7 +50,7 @@ def loglikelihood(params, plot=False):
     # here we are taking z from the global context -- so it is fixed!
     abs_component = absAGN(energies=energies, pars=[NH22, PhoIndex, Ecut, TORsigma, CTKcover, Incl, z])
 
-    scat_component = fastxsf.x.zpowerlw(energies=energies, pars=[norm, PhoIndex])
+    scat_component = tinyxsf.x.zpowerlw(energies=energies, pars=[norm, PhoIndex])
 
     pred_spec = abs_component * norm + scat_component * scat_norm
 
@@ -82,8 +82,8 @@ def loglikelihood(params, plot=False):
         plt.close()
 
     # compute log Poisson probability
-    like_srcreg = fastxsf.logPoissonPDF(pred_counts_srcreg, data['src_region_counts'])
-    like_bkgreg = fastxsf.logPoissonPDF(pred_counts_bkg_bkgreg, data['bkg_region_counts'])
+    like_srcreg = tinyxsf.logPoissonPDF(pred_counts_srcreg, data['src_region_counts'])
+    like_bkgreg = tinyxsf.logPoissonPDF(pred_counts_bkg_bkgreg, data['bkg_region_counts'])
     return like_srcreg + like_bkgreg
 
 

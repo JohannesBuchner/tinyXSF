@@ -6,9 +6,8 @@ import astropy.io.fits as pyfits
 import numpy as np
 import tqdm
 import xspec_models_cxc as x
-from scipy.interpolate import RegularGridInterpolator
-
 from joblib import Memory
+from scipy.interpolate import RegularGridInterpolator
 
 mem = Memory('.', verbose=False)
 
@@ -58,7 +57,7 @@ def xvec(model, energies, pars):
     Parameters
     ----------
     model: object
-        xspec model (from fastxsf.x module, which is xspec_models_cxc)
+        xspec model (from tinyxsf.x module, which is xspec_models_cxc)
     energies: array
         energies in keV where to evaluate model
     pars: array
@@ -477,7 +476,7 @@ def prepare_folded_model0d(model, energies, pars, ARF, RMF, nonnegative=True):
     Parameters
     ----------
     model: object
-        xspec model (from fastxsf.x module, which is xspec_models_cxc)
+        xspec model (from tinyxsf.x module, which is xspec_models_cxc)
     energies: array
         energies in keV where spectrum should be computed (ignored)
     pars: list
@@ -507,7 +506,7 @@ def _prepare_folded_model1d(model, modelname, energies, pars, ARF, RMF, nonnegat
     Parameters
     ----------
     model: object
-        xspec model (from fastxsf.x module, which is xspec_models_cxc)
+        xspec model (from tinyxsf.x module, which is xspec_models_cxc)
     modelname: str
         name of xspec model
     energies: array
@@ -551,7 +550,7 @@ def prepare_folded_model1d(model, energies, pars, ARF, RMF, nonnegative=True, me
     Parameters
     ----------
     model: object
-        xspec model (from fastxsf.x module, which is xspec_models_cxc)
+        xspec model (from tinyxsf.x module, which is xspec_models_cxc)
     energies: array
         energies in keV where spectrum should be computed (ignored)
     pars: list

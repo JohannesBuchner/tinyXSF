@@ -47,7 +47,7 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 	find . -name '*.so' -exec rm -f {} +
-	find fastxsf -name '*.c' -exec rm -f {} +
+	find tinyxsf -name '*.c' -exec rm -f {} +
 
 clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/
@@ -58,7 +58,7 @@ clean-test: ## remove test and coverage artifacts
 clean-doc:
 	rm -rf docs/build
 
-SOURCES := $(shell ls fastxsf/*.py)
+SOURCES := $(shell ls tinyxsf/*.py)
 
 lint: ${SOURCES} ## check style
 	flake8 ${SOURCES}
@@ -72,17 +72,17 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	PYTHONPATH=. coverage run --source fastxsf -m pytest
+	PYTHONPATH=. coverage run --source tinyxsf -m pytest
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
-	rm -f docs/fastxsf.rst
+	rm -f docs/tinyxsf.rst
 	rm -f docs/modules.rst
 	rm -f docs/API.rst
 	python3 setup.py build_ext --inplace
-	sphinx-apidoc -H API -o docs/ fastxsf
+	sphinx-apidoc -H API -o docs/ tinyxsf
 	cd docs; python3 modoverview.py
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html O=-jauto

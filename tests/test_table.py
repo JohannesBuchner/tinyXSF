@@ -1,6 +1,6 @@
 import numpy as np
-import fastxsf
-from fastxsf.model import Table, FixedTable
+import tinyxsf
+from tinyxsf.model import Table, FixedTable
 import os
 import requests
 import matplotlib.pyplot as plt
@@ -33,8 +33,8 @@ def test_disk_table():
     e_mid = (e_lo + e_hi) / 2.0
     deltae = e_hi - e_lo
 
-    fastxsf.x.abundance("angr")
-    fastxsf.x.cross_section("vern")
+    tinyxsf.x.abundance("angr")
+    tinyxsf.x.cross_section("vern")
     # compare diskreflect to pexmon
     atable = Table(get_fullfilename("diskreflect.fits"))
     Ecut = 400
@@ -46,7 +46,7 @@ def test_disk_table():
         print(f"Case: redshift={z}")
         ftable = FixedTable(get_fullfilename("diskreflect.fits"), energies, redshift=z)
         A = atable(energies, [PhoIndex, Ecut, Incl, z])
-        B = fastxsf.x.pexmon(energies=energies, pars=[PhoIndex, Ecut, -1, z, ZHe, ZFe, Incl]) / (1 + z)**2 / 2
+        B = tinyxsf.x.pexmon(energies=energies, pars=[PhoIndex, Ecut, -1, z, ZHe, ZFe, Incl]) / (1 + z)**2 / 2
         C = ftable(energies=energies, pars=[PhoIndex, Ecut, Incl])
         l, = plt.plot(e_mid, A / deltae / (1 + z)**2, label="atable")
         plt.plot(e_mid, B / deltae / (1 + z)**2, label="pexmon", ls=':', color=l.get_color())
@@ -73,8 +73,8 @@ def test_pexpl_table():
     ZFe = 1
     for PhoIndex in 2.4, 2.0, 1.2:
         for z in 0, 1, 2:
-            A = fastxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z])
-            B = fastxsf.x.pexmon(energies=energies, pars=[PhoIndex, Ecut, 0, z, ZHe, ZFe, Incl]) / (1 + z)**2
+            A = tinyxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z])
+            B = tinyxsf.x.pexmon(energies=energies, pars=[PhoIndex, Ecut, 0, z, ZHe, ZFe, Incl]) / (1 + z)**2
             l, = plt.plot(e_mid * (1 + z), A / deltae, label="atable")
             plt.plot(e_mid * (1 + z), B / deltae / (1 + z)**(PhoIndex - 2), label="pexmon", ls=':', color=l.get_color())
             plt.xlabel("Energy [keV]")
@@ -86,8 +86,8 @@ def test_pexpl_table():
             assert_allclose(A, B / (1 + z)**(PhoIndex - 2), rtol=0.2, atol=1e-4)
 
 def test_absorber_table():
-    fastxsf.x.abundance("angr")
-    fastxsf.x.cross_section("bcmc")
+    tinyxsf.x.abundance("angr")
+    tinyxsf.x.cross_section("bcmc")
     # compare uxclumpy to ztbabs * zpowerlw
     atable = Table(get_fullfilename("wedge.fits"))
     PhoIndex = 1.0
@@ -105,8 +105,8 @@ def test_absorber_table():
             deltae = e_hi - e_lo
 
             A = atable(energies, [NH22, PhoIndex, 45.6, Incl, z])
-            B = fastxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z])
-            C = B * fastxsf.x.zphabs(energies=energies, pars=[NH22, z])
+            B = tinyxsf.x.zpowerlw(energies=energies, pars=[PhoIndex, z])
+            C = B * tinyxsf.x.zphabs(energies=energies, pars=[NH22, z])
             mask = np.logical_and(energies[:-1] > elo / (1 + z), energies[:-1] / (1 + z) < 80)
             mask[np.abs(energies[:-1] - 6.4 / (1 + z)) < 0.1] = False
             plt.plot(e_mid, A / deltae, label="atable", ls='--', color='k', lw=0.5)

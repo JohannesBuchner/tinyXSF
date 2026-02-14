@@ -5,14 +5,14 @@ import scipy.stats
 import ultranest
 from matplotlib import pyplot as plt
 
-import fastxsf
+import tinyxsf
 
-# fastxsf.x.chatter(0)
-fastxsf.x.abundance('wilm')
-fastxsf.x.cross_section('vern')
+# tinyxsf.x.chatter(0)
+tinyxsf.x.abundance('wilm')
+tinyxsf.x.cross_section('vern')
 
 # load the spectrum, where we will consider data from 0.5 to 8 keV
-data = fastxsf.load_pha('example/179.pi', 0.5, 8)
+data = tinyxsf.load_pha('example/179.pi', 0.5, 8)
 
 # fetch some basic information about our spectrum
 e_lo = data['e_lo']
@@ -25,10 +25,10 @@ RMF_src = data['RMF_src']
 chan_e = (data['chan_e_min'] + data['chan_e_max']) / 2.
 
 # load a Table model
-absAGN = fastxsf.Table(os.path.join(os.environ.get('MODELDIR', '.'), 'uxclumpy-cutoff.fits'))
+absAGN = tinyxsf.Table(os.path.join(os.environ.get('MODELDIR', '.'), 'uxclumpy-cutoff.fits'))
 
 # pre-compute the absorption factors -- no need to call this again and again if the parameters do not change!
-galabso = fastxsf.x.TBabs(energies=energies, pars=[data['galnh']])
+galabso = tinyxsf.x.TBabs(energies=energies, pars=[data['galnh']])
 
 
 # define a likelihood
@@ -40,7 +40,7 @@ def loglikelihood(params, plot=False):
 
     abs_component = absAGN(energies=energies, pars=np.transpose([NH22, PhoIndex, Ecut, TORsigma, CTKcover, Incl, z]), vectorized=True)
 
-    scat_component = fastxsf.xvec(fastxsf.x.zpowerlw, energies=energies, pars=np.transpose([norm, PhoIndex]))
+    scat_component = tinyxsf.xvec(tinyxsf.x.zpowerlw, energies=energies, pars=np.transpose([norm, PhoIndex]))
 
     pred_spec = np.einsum('ij,i->ij', abs_component, norm) + np.einsum('ij,i->ij', scat_component, scat_norm)
 
@@ -72,8 +72,8 @@ def loglikelihood(params, plot=False):
         plt.close()
 
     # compute log Poisson probability
-    like_srcreg = fastxsf.logPoissonPDF_vectorized(pred_counts_srcreg, data['src_region_counts'])
-    like_bkgreg = fastxsf.logPoissonPDF_vectorized(pred_counts_bkg_bkgreg, data['bkg_region_counts'])
+    like_srcreg = tinyxsf.logPoissonPDF_vectorized(pred_counts_srcreg, data['src_region_counts'])
+    like_bkgreg = tinyxsf.logPoissonPDF_vectorized(pred_counts_bkg_bkgreg, data['bkg_region_counts'])
     # combined the probabilities. If fitting multiple spectra, you would add them up here as well
     return like_srcreg + like_bkgreg
 
