@@ -6,8 +6,9 @@ import astropy.io.fits as pyfits
 import numpy as np
 import tqdm
 import xspec_models_cxc as x
-from joblib import Memory
 from scipy.interpolate import RegularGridInterpolator
+
+from joblib import Memory
 
 mem = Memory('.', verbose=False)
 

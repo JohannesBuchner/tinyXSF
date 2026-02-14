@@ -1,4 +1,4 @@
-FastXSF
+TinyXSF
 -------
 
 Fast X-ray spectral fitting.
@@ -38,11 +38,11 @@ Therefore, we want:
 3) Nested sampling for model comparison and robust parameter estimation
 4) Minimum package maintainance effort
 
-FastXSF does that.
+TinyXSF does that.
 
 xspex&jaxspec do 1, xspec/sherpa+BXA does 2+3.
 
-FastXSF is a few hundred lines of code.
+TinyXSF is a few hundred lines of code.
 
 Approach
 --------
