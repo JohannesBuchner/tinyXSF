@@ -72,13 +72,13 @@ jobs:
           which coverage
 
       - name: Lint with flake8
-        run: flake8 fastxsf
+        run: flake8 tinyxsf
 
       - name: Check code style
-        run: pycodestyle fastxsf
+        run: pycodestyle tinyxsf
 
       - name: Check doc style
-        run: pydocstyle fastxsf
+        run: pydocstyle tinyxsf
 
       - name: Check install
         run: |

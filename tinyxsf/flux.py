@@ -135,7 +135,7 @@ def photon_flux(unfolded_model_spectrum, energies, energy_lo, energy_hi, axis=No
         Photon flux in phot/cm^2/s
     """
     Nchan = len(energies) - 1
-    assert unfolded_model_spectrum.shape == (Nchan,)
+    assert unfolded_model_spectrum.shape[-1] == Nchan
     assert energies.shape == (Nchan + 1,)
     integral = bins_integrate(unfolded_model_spectrum, energies, energy_lo, energy_hi, axis=axis)
     return integral / u.cm**2 / u.s

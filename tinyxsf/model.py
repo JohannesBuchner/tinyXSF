@@ -72,7 +72,7 @@ def xvec(model, energies, pars):
     """
     results = np.empty((len(pars), len(energies) - 1))
     for i, pars_i in enumerate(pars):
-        results[i, :] = model(energies=energies, pars=pars_i)
+        model(energies=energies, pars=pars_i, out=results[i, :])
     return results
 
 
@@ -208,7 +208,19 @@ class Table:
             e_hi = energies[1:]
             e_mid = (e_lo + e_hi) / 2.0
             delta_e = e_hi - e_lo
-            model_int_spectrum = self.interpolator(pars[:, :-1])
+            try:
+                model_int_spectrum = self.interpolator(pars[:, :-1])
+            except ValueError as e:
+                for pname, gridpoints, values in zip(self.parameter_names, self.interpolator.grid, pars[:, :-1].transpose()):
+                    lo = gridpoints.min()
+                    hi = gridpoints.max()
+                    errstr = f"Error for table model '{self.name}: requested evaluation for parameter '{pname}' at value "
+                    if not np.all(values >= lo):
+                        raise ValueError(f"{errstr}{values.min()}, but lowest tabulated value is {lo}") from e
+                    if not np.all(values <= hi):
+                        raise ValueError(f"{errstr}{values.max()}, but highest tabulated value is {lo}") from e
+                raise e
+
             results = np.empty((len(z), len(e_mid)))
             for i, zi in enumerate(z):
                 # this model spectrum contains for each bin [e_lo...e_hi] the integral of energy

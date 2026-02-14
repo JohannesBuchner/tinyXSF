@@ -167,7 +167,7 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
     if z is not None:
         data["redshift"] = z
         data["e_mid_restframe"] = (data["e_hi"] + data["e_lo"]) / 2 * (1 + z)
-        data["luminosity_distance"] = cosmo.luminosity_distance(z)
+        data["luminosity_distance"] = cosmo.luminosity_distance(z).to(u.cm)
     elif os.path.exists(filename + ".z"):
         z = float(np.loadtxt(filename + ".z"))
         data["redshift"] = z
