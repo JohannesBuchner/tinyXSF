@@ -1,4 +1,4 @@
-"""Fast X-ray spectral fitting."""
+"""Tiny X-ray spectral fitting library."""
 
 __author__ = """Johannes Buchner"""
 __email__ = 'johannes.buchner.acad@gmx.com'
