@@ -51,7 +51,7 @@ jobs:
 
       - name: Install python dependencies
         run: |
-          micromamba install --override-channels -c https://cxc.cfa.harvard.edu/conda/ciao -c conda-forge xspec-modelsonly "matplotlib>=3.5" ultranest "coverage<7.0.0" coveralls==3.3.1 scipy jax h5py astropy requests cython tqdm coverage toml flake8 pycodestyle pydocstyle pytest pytest-html pytest-xdist h5py joblib &&
+          micromamba install --override-channels -c https://cxc.cfa.harvard.edu/conda/ciao -c conda-forge xspec-modelsonly "matplotlib>=3.5" ultranest "coverage<7.0.0" coveralls==3.3.1 scipy jax h5py astropy requests cython tqdm coverage toml flake8 pycodestyle pydocstyle pytest pytest-html pytest-xdist h5py joblib cosmolopy &&
           echo "--- Environment dump start ---" &&
           env &&
           echo "--- Environment dump end ---" &&
