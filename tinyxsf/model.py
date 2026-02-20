@@ -7,6 +7,7 @@ import numpy as np
 import tqdm
 import xspec_models_cxc as x
 from scipy.interpolate import RegularGridInterpolator
+from scipy.special import gammaln
 
 from joblib import Memory
 
@@ -50,6 +51,34 @@ def logPoissonPDF(model, counts):
     """
     log_model = np.log(np.clip(model, 1e-100, None))
     return np.sum(log_model * counts) - model.sum()
+
+
+def logNegBinomialPDF(model, counts, k):
+    """Compute Negative Binomial probability (Poisson-Gamma mixture).
+
+    Parameters
+    ----------
+    model: array
+        expected number of counts (mean mu)
+    counts: array
+        observed counts (non-negative integer)
+    k: float
+        dispersion parameter k > 0 (larger -> closer to Poisson)
+
+    Returns
+    -------
+    loglikelihood: float
+        ln of the Negative Binomial likelihood, neglecting constant factors
+        that depend only on the data (counts).
+    """
+    mu = np.asarray(model, float)
+    y = np.asarray(counts, float)
+
+    mu = np.clip(mu, 1e-100, None)
+
+    # log p(y | mu, k) up to constants in y:
+    # ln Γ(y+k) - ln Γ(k)  + k ln(k/(k+mu)) + y ln(mu/(k+mu))
+    return float(np.sum(gammaln(y + k) - gammaln(k) + k * (np.log(k) - np.log(k + mu)) + y * (np.log(mu) - np.log(k + mu))))
 
 
 def xvec(model, energies, pars):
@@ -99,7 +128,18 @@ def check_if_sorted(param_vals, parameter_grid):
 
 
 def hashfile(filename):
-    """Compute a hash for the content of a file."""
+    """Compute a hash for the content of a file.
+
+    Parameters
+    ----------
+    filename: str
+        file name
+
+    Returns
+    -------
+    hash: str
+        hash digest of file content
+    """
     with open(filename, 'rb', buffering=0) as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
 
@@ -174,6 +214,8 @@ class Table:
             filename of a OGIP FITS file.
         method: str
             interpolation kind, passed to RegularGridInterpolator
+        verbose: bool
+            whether to print information about the table
         """
         parameter_grid, data, info = _load_table(filename, hashfile(filename))
         self.__dict__.update(info)
@@ -400,6 +442,8 @@ class FixedTable(Table):
         fix: dict
             dictionary of parameter names and their values to fix
             for faster data loading.
+        verbose: bool
+            whether top print information about the table
         """
         shape, data, info = _load_redshift_interpolated_table(
             filename, hashfile(filename), energies, redshift=redshift, fix=fix)
@@ -469,6 +513,12 @@ class FixedFoldedTable(FixedTable):
         fix: dict
             dictionary of parameter names and their values to fix
             for faster data loading.
+        RMF: RMF
+            response matrix
+        ARF: ARF
+            area response function
+        verbose: bool
+            whether to print information about the table
         """
         shape, data, info = _load_redshift_interpolated_table_folded(
             filename, hashfile(filename), energies, redshift=redshift, fix=fix,
@@ -607,5 +657,3 @@ def prepare_folded_model1d(model, energies, pars, ARF, RMF, nonnegative=True, me
             raise ValueError(f'invalid parameter value passed: {par}') from e
 
     return simple_interpolator
-
-# build a folded model with mean and std of a parameter being a distribution?
