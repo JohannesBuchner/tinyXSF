@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tinyxsf"
-version = "1.1.0"
+version = "1.2.0"
 description = "Fast X-ray spectral fitting"
 readme = "README.rst"
 requires-python = ">=3.8"
