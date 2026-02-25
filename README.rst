@@ -73,7 +73,7 @@ Installation
 
 Quick version with conda/mamba::
 
-    $ conda create -n tinyXSF -c https://cxc.cfa.harvard.edu/conda/ciao -c xspec-modelsonly conda-forge astropy ultranest jax scikit-learn 
+    $ conda create -n tinyXSF -c https://cxc.cfa.harvard.edu/conda/ciao -c xspec-modelsonly conda-forge astropy ultranest jax scikit-learn tqdm
     $ pip install git+https://github.com/cxcsds/xspec-models-cxc --verbose
     $ pip install git+https://github.com/JohannesBuchner/tinyXSF
 
