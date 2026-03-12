@@ -53,6 +53,38 @@ def logPoissonPDF(model, counts):
     return np.sum(log_model * counts) - model.sum()
 
 
+def logNegBinomialPDF_vectorized(model, counts, k):
+    """
+    Vectorized Negative Binomial log-likelihood.
+
+    Parameters
+    ----------
+    model : array
+        Expected counts (mean mu). Shape (N, C)
+    counts : array
+        Observed counts. Shape (C,)
+    k : float or array
+        Dispersion parameter(s). Shape (N,)
+
+    Returns
+    -------
+    loglikelihood : array
+        Shape (N,)
+    """
+    y = counts.reshape(1, -1)
+    mu = np.clip(model, 1e-100, None)
+    if np.ndim(k) == 0:
+        karr = k
+    else:
+        karr = k.reshape(-1, 1)
+
+    # log p(y | mu, k) up to constants in y:
+    # ln Γ(y+k) - ln Γ(k)  + k ln(k/(k+mu)) + y ln(mu/(k+mu))
+    log_karr_plus_mu = np.log(karr + mu)
+    out = gammaln(y + karr) - gammaln(karr) + karr * (np.log(karr) - log_karr_plus_mu) + y * (np.log(mu) - log_karr_plus_mu)
+    return out.sum(axis=1)
+
+
 def logNegBinomialPDF(model, counts, k):
     """Compute Negative Binomial probability (Poisson-Gamma mixture).
 
@@ -299,8 +331,8 @@ class Table:
             )
 
 
-@mem.cache
-def _load_redshift_interpolated_table(filename, filehash, energies, redshift, fix={}):
+@mem.cache(ignore=["verbose"])
+def _load_redshift_interpolated_table(filename, filehash, energies, redshift, fix={}, verbose=False):
     """Load data from table file, precomputed for a energy grid.
 
     Parameters
@@ -316,6 +348,8 @@ def _load_redshift_interpolated_table(filename, filehash, energies, redshift, fi
     fix: dict
         dictionary of parameter names and their values to fix
         for faster data loading.
+    verbose: bool
+        if True, show a progress bar.
 
     Returns
     -------
@@ -371,7 +405,7 @@ def _load_redshift_interpolated_table(filename, filehash, energies, redshift, fi
 
     # Interpolate
     newdata = np.zeros((valid_data.shape[0], len(e_mid_rest)))
-    for i, row in enumerate(valid_data):
+    for i, row in enumerate(tqdm.tqdm(valid_data, desc=f"Loading table {filename}") if verbose else valid_data):
         newdata[i, :] = np.interp(
             x=e_mid_rest,
             xp=e_model_mid,
@@ -383,8 +417,8 @@ def _load_redshift_interpolated_table(filename, filehash, energies, redshift, fi
     return newshape, newdata, info
 
 
-@mem.cache
-def _load_redshift_interpolated_table_folded(filename, filehash, energies, redshift, ARF, RMF, fix={}):
+@mem.cache(ignore=["verbose"])
+def _load_redshift_interpolated_table_folded(filename, filehash, energies, redshift, ARF, RMF, fix={}, verbose=False):
     """Load data from table file, and fold it through the response.
 
     Parameters
@@ -404,6 +438,8 @@ def _load_redshift_interpolated_table_folded(filename, filehash, energies, redsh
     fix: dict
         dictionary of parameter names and their values to fix
         for faster data loading.
+    verbose: bool
+        if True, print status and show a progress bar
 
     Returns
     -------
@@ -415,10 +451,14 @@ def _load_redshift_interpolated_table_folded(filename, filehash, energies, redsh
         information about the table, including parameter_names, name, e_model_lo, e_model_hi, e_model_mid, deltae, parameter_grid
     """
     oldshape, olddata, info = _load_redshift_interpolated_table(
-        filename, filehash, energies, redshift=redshift, fix=fix)
+        filename, filehash, energies, redshift=redshift, fix=fix, verbose=verbose)
     newshape = list(oldshape)
     newshape[-1] = RMF.detchans
-    newdata = RMF.apply_rmf_vectorized(olddata * ARF)
+    if verbose:
+        print(f"Folding table model {filename} through ARF and RMF, from shape={oldshape} to shape={newshape} ...")
+    newdata = RMF.apply_rmf_vectorized(olddata * ARF, progress=verbose)
+    if verbose:
+        print(f"Folding table model {filename} through ARF and RMF, from shape={oldshape} to shape={newshape} ... done")
     assert newdata.shape == (len(olddata), RMF.detchans), (newdata.shape, olddata.shape, len(olddata), newshape[-1])
     return newshape, newdata.reshape(newshape), info
 
@@ -446,7 +486,7 @@ class FixedTable(Table):
             whether top print information about the table
         """
         shape, data, info = _load_redshift_interpolated_table(
-            filename, hashfile(filename), energies, redshift=redshift, fix=fix)
+            filename, hashfile(filename), energies, redshift=redshift, fix=fix, verbose=verbose)
         self.__dict__.update(info)
         if verbose:
             print(f'ATABLE "{self.name}" (redshift={redshift})')
@@ -484,14 +524,29 @@ class FixedTable(Table):
             try:
                 return self.interpolator(pars)
             except ValueError as e:
-                raise ValueError(f"Interpolator with parameters {self.parameter_names} called with {pars}") from e
+                for p, allowed_values, called_values in zip(self.parameter_names, self.parameter_grid, pars.transpose()):
+                    mask = ~np.logical_and(called_values >= allowed_values.min(), called_values <= allowed_values.max())
+                    if mask.any():
+                        raise ValueError(
+                            f"Table interpolator called with {p}={called_values[mask][0]}, "
+                            "but allowed range is [{allowed_values.min()}, {allowed_values.max()}]") from e
+                raise ValueError(
+                    f"Table interpolator with parameters {self.parameter_names} called with {pars}, "
+                    "parameter grids are {self.parameter_grid}") from e
         else:
             assert np.ndim(pars) == 1
             try:
                 return self.interpolator([pars])[0]
             except ValueError as e:
+                for p, allowed_values, called_value in zip(self.parameter_names, self.parameter_grid, pars):
+                    if not (called_value >= allowed_values.min() and called_value <= allowed_values.max()):
+                        raise ValueError(
+                            f"Table interpolator called with {p}={called_value}, "
+                            "but allowed range is [{allowed_values.min()}, {allowed_values.max()}]") from e
                 pars_assigned = ' '.join([f'{k}={v}' for k, v in zip(self.parameter_names, pars)])
-                raise ValueError(f"Interpolator called with {pars_assigned}") from e
+                raise ValueError(
+                    f"Table interpolator called with {pars_assigned}, "
+                    "parameter grids are {self.parameter_grid}") from e
 
 
 class FixedFoldedTable(FixedTable):
@@ -522,7 +577,7 @@ class FixedFoldedTable(FixedTable):
         """
         shape, data, info = _load_redshift_interpolated_table_folded(
             filename, hashfile(filename), energies, redshift=redshift, fix=fix,
-            RMF=RMF, ARF=ARF)
+            RMF=RMF, ARF=ARF, verbose=verbose)
         self.__dict__.update(info)
         if verbose:
             print(f'ATABLE "{self.name}" (redshift={redshift})')
