@@ -74,21 +74,26 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
         All information about the observation.
     """
     path = os.path.dirname(filename)
-    a = pyfits.open(filename)
-    header = a["SPECTRUM"].header
-    exposure = header["EXPOSURE"]
-    backscal = header["BACKSCAL"]
-    areascal = header["AREASCAL"]
+    with pyfits.open(filename) as a:
+        header = a["SPECTRUM"].header
+        exposure = header["EXPOSURE"]
+        backscal = header["BACKSCAL"]
+        areascal = header["AREASCAL"]
+        channels = a["SPECTRUM"].data["CHANNEL"]
+        fcounts = a["SPECTRUM"].data["COUNTS"]
+
     backfile = os.path.join(path, header["BACKFILE"])
     rmffile = os.path.join(path, header["RESPFILE"])
     arffile = os.path.join(path, header["ANCRFILE"])
-    channels = a["SPECTRUM"].data["CHANNEL"]
 
-    b = pyfits.open(backfile)
-    bheader = b["SPECTRUM"].header
-    bexposure = bheader["EXPOSURE"]
-    bbackscal = bheader["BACKSCAL"]
-    bareascal = bheader["AREASCAL"]
+    with pyfits.open(backfile) as b:
+        bheader = b["SPECTRUM"].header
+        bexposure = bheader["EXPOSURE"]
+        bbackscal = bheader["BACKSCAL"]
+        bareascal = bheader["AREASCAL"]
+        bchannels = b["SPECTRUM"].data["CHANNEL"]
+        bfcounts = b["SPECTRUM"].data["COUNTS"]
+
     assert (
         "RESPFILE" not in bheader or bheader["RESPFILE"] == header["RESPFILE"]
     ), "background must have same RMF"
@@ -119,15 +124,12 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
     assert armf.energ_lo.shape == armf.energ_hi.shape == aarf.e_low.shape == aarf.e_high.shape
 
     # assert np.allclose(channels, np.arange(Nchan)+1), (channels, Nchan)
-    fcounts = a["SPECTRUM"].data["COUNTS"]
     assert (Nchan,) == fcounts.shape, (fcounts.shape, Nchan)
     counts = fcounts.astype(int)
     assert (counts == fcounts).all()
 
-    bchannels = b["SPECTRUM"].data["CHANNEL"]
     # assert np.allclose(bchannels, np.arange(Nchan)+1), (bchannels, Nchan)
     assert len(bchannels) == Nchan, (len(bchannels), Nchan)
-    bfcounts = b["SPECTRUM"].data["COUNTS"]
     assert (Nchan,) == bfcounts.shape, (bfcounts.shape, Nchan)
     bcounts = bfcounts.astype(int)
     assert (bcounts == bfcounts).all()
