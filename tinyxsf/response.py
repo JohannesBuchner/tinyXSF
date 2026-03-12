@@ -6,6 +6,7 @@ from functools import partial
 import astropy.io.fits as fits
 import jax
 import numpy as np
+import tqdm
 
 __all__ = ["RMF", "ARF", "MockARF"]
 
@@ -473,7 +474,7 @@ class RMF(object):
 
         return counts[:self.detchans]
 
-    def apply_rmf_vectorized(self, specs):
+    def apply_rmf_vectorized(self, specs, progress=False):
         """
         Fold the spectrum through the redistribution matrix.
 
@@ -505,6 +506,8 @@ class RMF(object):
         ----------
         specs : numpy.ndarray
             The (model) spectra to be folded
+        progress : bool
+            If True, show a progress bar.
 
         Returns
         -------
@@ -516,7 +519,8 @@ class RMF(object):
         if self.dense_info is not None:  # and nspecs < 40:
             in_indices, out_indices, weights = self.dense_info
             out = np.zeros((nspecs, self.detchans))
-            for i in range(nspecs):
+            it = tqdm.trange(nspecs) if progress else range(nspecs)
+            for i in it:
                 # out[i] = np.bincount(out_indices, weights=specs[i,in_indices] * weights, minlength=self.detchans)
                 # out[i] = self._apply_rmf(specs[i])
                 out[i] = jax.numpy.zeros(self.detchans).at[out_indices].add(specs[i,in_indices] * weights)
@@ -533,7 +537,8 @@ class RMF(object):
         resp_idx = 0
 
         # loop over all channels
-        for i in range(nchannels):
+        it = tqdm.trange(nchannels) if progress else range(nchannels)
+        for i in it:
             # this is the current bin in the flux spectrum to
             # be folded
             source_bin_i = specs[:,i]
