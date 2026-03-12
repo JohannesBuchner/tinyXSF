@@ -212,6 +212,7 @@ def plot_fit(
     divide_vector=None,
     sigma=1,
     show_bands=True,
+    plot_src_data=True,
     plot_bkg_data=True,
     exposure=None,
     ax=None,
@@ -263,13 +264,16 @@ def plot_fit(
     show_bands : bool, optional
         If True, draw posterior prediction bands: inner = `sigma`,
         outer = 3 sigma. Default True.
+    plot_src_data : bool, optional
+        If True, plot source-region data (rebinned to the same binning)
+        with error bars, in the same y-units as the main plot. Default True.
     plot_bkg_data : bool, optional
         If True, plot background-region data (rebinned to the same binning)
         with error bars, in the same y-units as the main plot. Default True.
         Note: background-region data are not scaled to source-region area here.
     exposure : float or None, optional
         Exposure time in seconds (required if `counts=False`). If None, uses
-        data['src_exposure'] if present.
+        data['src_expo'] if present.
     ax : matplotlib.axes.Axes or None, optional
         Axis to draw into. If None, a new 2-panel figure is created.
     ax_sub : matplotlib.axes.Axes or None, optional
@@ -373,17 +377,18 @@ def plot_fit(
         fig = ax.figure
 
     # plot data
-    ax.errorbar(
-        e_mid_p, y_data, yerr=yerr_data, xerr=xerr_plot,
-        fmt="o", ms=4, mfc="none", mec="k", ecolor="k", elinewidth=1, capsize=0,
-        zorder=10, label="data"
-    )
+    if plot_src_data:
+        ax.errorbar(
+            e_mid_p, y_data, yerr=yerr_data, xerr=xerr_plot,
+            fmt="o", ms=4, mfc="none", mec="k", ecolor="k", elinewidth=1, capsize=0,
+            zorder=10, label="data", alpha=0.8,
+        )
 
     if y_bkg is not None:
         ax.errorbar(
             e_mid_p, y_bkg, yerr=yerr_bkg, xerr=xerr_plot,
             fmt="s", ms=3.5, mfc="none", mec="0.7", ecolor="0.7", elinewidth=1, capsize=0,
-            zorder=9, label="bkg data"
+            zorder=9, label="bkg data", alpha=0.8,
         )
 
     # models + bands
