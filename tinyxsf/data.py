@@ -7,6 +7,7 @@ import numpy as np
 from astropy import units as u
 from astropy.cosmology import Planck18 as cosmo
 
+from .hash import hashfile
 from .response import ARF, RMF, MockARF
 
 

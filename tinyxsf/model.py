@@ -1,5 +1,4 @@
 """Statistical and astrophysical models."""
-import hashlib
 import itertools
 
 import astropy.io.fits as pyfits
@@ -10,6 +9,8 @@ from scipy.interpolate import RegularGridInterpolator
 from scipy.special import gammaln
 
 from joblib import Memory
+
+from .hash import hashfile
 
 mem = Memory('.', verbose=False)
 
@@ -157,23 +158,6 @@ def check_if_sorted(param_vals, parameter_grid):
         if not np.all(param_vals[i] == params):
             return False
     return True
-
-
-def hashfile(filename):
-    """Compute a hash for the content of a file.
-
-    Parameters
-    ----------
-    filename: str
-        file name
-
-    Returns
-    -------
-    hash: str
-        hash digest of file content
-    """
-    with open(filename, 'rb', buffering=0) as f:
-        return hashlib.file_digest(f, 'sha256').hexdigest()
 
 
 @mem.cache
@@ -529,10 +513,10 @@ class FixedTable(Table):
                     if mask.any():
                         raise ValueError(
                             f"Table interpolator called with {p}={called_values[mask][0]}, "
-                            "but allowed range is [{allowed_values.min()}, {allowed_values.max()}]") from e
+                            f"but allowed range is [{allowed_values.min()}, {allowed_values.max()}]") from e
                 raise ValueError(
                     f"Table interpolator with parameters {self.parameter_names} called with {pars}, "
-                    "parameter grids are {self.parameter_grid}") from e
+                    f"parameter grids are {self.parameter_grid}") from e
         else:
             assert np.ndim(pars) == 1
             try:
@@ -542,11 +526,11 @@ class FixedTable(Table):
                     if not (called_value >= allowed_values.min() and called_value <= allowed_values.max()):
                         raise ValueError(
                             f"Table interpolator called with {p}={called_value}, "
-                            "but allowed range is [{allowed_values.min()}, {allowed_values.max()}]") from e
+                            f"but allowed range is [{allowed_values.min()}, {allowed_values.max()}]") from e
                 pars_assigned = ' '.join([f'{k}={v}' for k, v in zip(self.parameter_names, pars)])
                 raise ValueError(
                     f"Table interpolator called with {pars_assigned}, "
-                    "parameter grids are {self.parameter_grid}") from e
+                    f"parameter grids are {self.parameter_grid}") from e
 
 
 class FixedFoldedTable(FixedTable):
