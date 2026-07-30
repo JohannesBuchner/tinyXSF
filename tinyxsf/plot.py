@@ -424,45 +424,43 @@ def plot_fit(
 
         ax.plot(e_mid_p, med, color=color, lw=1.5, label=label)
 
-    # lower panel vs first model
-    if len(model_medians) == 0:
-        raise ValueError("pred_counts_arrays must contain at least one model array.")
-    mref = np.asarray(model_medians[0], dtype=float)
-
     if yerr_data is not None:
         sigma_y = 0.5 * (yerr_data[0] + yerr_data[1])
         sigma_y = np.where(sigma_y > 0, sigma_y, np.nan)
     else:
         sigma_y = None
 
-    if subplot == "residuals":
-        y_sub = y_data - mref
+    if subplot is None:
+        pass
+    elif subplot == "residuals":
+        y_sub = y_data - model_medians[0]
         y_sub_err = None
         ax_sub.axhline(0.0, color="0.4", ls="--", lw=1.2)
         ax_sub.set_ylabel("Data-Model")
     elif subplot == "normalised_residuals":
         if sigma_y is None:
             raise ValueError("use cumulative counts with plot_fit(subplot='residuals')")
-        y_sub = (y_data - mref) / sigma_y
+        y_sub = (y_data - model_medians[0]) / sigma_y
         y_sub_err = None
         ax_sub.axhline(0.0, color="0.4", ls="--", lw=1.2)
         ax_sub.set_ylabel(r"Residuals/$\sigma$")
         ax_sub.set_ylim(-3, 3)
         ax_sub.set_yticks([-2, 0, 2])
     elif subplot == "ratio":
-        y_sub = y_data / np.where(mref != 0, mref, np.nan)
-        y_sub_err = yerr_data / np.where(mref != 0, mref, np.nan)[None, :]
+        y_sub = y_data / np.where(model_medians[0] != 0, model_medians[0], np.nan)
+        y_sub_err = yerr_data / np.where(model_medians[0] != 0, model_medians[0], np.nan)[None, :]
         ax_sub.axhline(1.0, color="0.4", ls="--", lw=1.2)
         ax_sub.set_ylabel("Data/Model")
         ax_sub.set_ylim(0, 5)
         ax_sub.set_yticks([0, 1, 3])
     else:
-        raise ValueError("subplot must be one of: 'residuals', 'normalised_residuals', 'ratio'.")
+        raise ValueError("subplot must be one of: None, 'residuals', 'normalised_residuals', 'ratio'.")
 
-    ax_sub.errorbar(
-        e_mid_p, y_sub, yerr=y_sub_err, xerr=xerr_plot,
-        fmt="o", ms=4, mfc="none", mec="k", ecolor="k", elinewidth=1, capsize=0
-    )
+    if subplot is not None:
+        ax_sub.errorbar(
+            e_mid_p, y_sub, yerr=y_sub_err, xerr=xerr_plot,
+            fmt="o", ms=4, mfc="none", mec="k", ecolor="k", elinewidth=1, capsize=0
+        )
 
     if subplot == "residuals":
         ylo, yhi = ax_sub.get_ylim()
