@@ -1,0 +1,11 @@
+numpy
+scipy
+matplotlib
+optns
+tqdm
+jax
+ultranest
+h5py
+astropy
+corner
+cosmolopy
