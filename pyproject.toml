@@ -25,10 +25,13 @@ max-line-length = 160
 
 [tool.pycodestyle]
 count = false
-ignore = "W191,W291,W293,E231"
+ignore = "W191,W291,W293,E231,E225"
 max-line-length = 160
 statistics = false
 
 [tool.pytest.ini_options]
 collect_ignore = "['setup.py']"
 addopts = "--junitxml=test-reports/junit.xml  --html=tests/reports/index.html"
+
+[tool.pydocstyle]
+add-ignore = "D107"
