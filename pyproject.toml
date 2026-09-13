@@ -35,3 +35,8 @@ addopts = "--junitxml=test-reports/junit.xml  --html=tests/reports/index.html"
 
 [tool.pydocstyle]
 add-ignore = "D107"
+
+[project.urls]
+Homepage = "https://github.com/JohannesBuchner/tinyXSF"
+Source = "https://github.com/JohannesBuchner/tinyXSF"
+Documentation = "https://github.com/JohannesBuchner/tinyXSF"
