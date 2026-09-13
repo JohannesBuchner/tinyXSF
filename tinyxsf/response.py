@@ -1,4 +1,5 @@
 """Functionality for linear instrument response."""
+
 # from https://github.com/dhuppenkothen/clarsach/blob/master/clarsach/respond.py
 # GPL licenced code from the Clàrsach project
 from functools import partial
@@ -295,7 +296,7 @@ class RMF(object):
         # loop over all channels
         for i in range(len(self.energ_lo)):
             # get the current number of groups
-            current_num_groups = self.n_grp[i]
+            current_num_groups = int(self.n_grp[i])
 
             # loop over the current number of groups
             for current_num_chans, counts_idx in zip(
@@ -384,6 +385,84 @@ class RMF(object):
         """Restore state from pickling."""
         self.__dict__.update(state)
         self._compile()
+
+    def __eq__(self, other):
+        """Check equality for joblib memoization.
+
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
+
+        Returns
+        -------
+        bool
+            True if objects are equal.
+        """
+        if not isinstance(other, RMF):
+            return False
+        try:
+            dense_equal = (
+                (self.dense_info is None and other.dense_info is None)
+                or (
+                    self.dense_info is not None
+                    and other.dense_info is not None
+                    and np.array_equal(self.dense_info[0], other.dense_info[0])
+                    and np.array_equal(self.dense_info[1], other.dense_info[1])
+                    and np.array_equal(self.dense_info[2], other.dense_info[2])
+                )
+            )
+            return (
+                np.array_equal(self.energ_lo, other.energ_lo) and
+                np.array_equal(self.energ_hi, other.energ_hi) and
+                np.array_equal(self.n_grp, other.n_grp) and
+                np.array_equal(self.f_chan, other.f_chan) and
+                np.array_equal(self.n_chan, other.n_chan) and
+                np.array_equal(self.matrix, other.matrix) and
+                self.detchans == other.detchans and
+                self.offset == other.offset and
+                dense_equal
+            )
+        except AttributeError:
+            return False
+
+    def __hash__(self):
+        """Hash for joblib memoization.
+
+        Returns
+        -------
+        int
+            Hash value based on key array contents and scalar attributes.
+        """
+
+        def _array_hash(arr):
+            return hash(arr.tobytes()) if arr is not None else hash(None)
+
+        dense_hash = (
+            hash(None)
+            if self.dense_info is None
+            else hash(
+                (
+                    _array_hash(self.dense_info[0]),
+                    _array_hash(self.dense_info[1]),
+                    _array_hash(self.dense_info[2]),
+                )
+            )
+        )
+
+        return hash(
+            (
+                _array_hash(self.energ_lo),
+                _array_hash(self.energ_hi),
+                _array_hash(self.n_grp),
+                _array_hash(self.f_chan),
+                _array_hash(self.n_chan),
+                _array_hash(self.matrix),
+                self.detchans,
+                self.offset,
+                dense_hash,
+            )
+        )
 
     def apply_rmf(self, spec):
         """
@@ -523,7 +602,11 @@ class RMF(object):
             for i in it:
                 # out[i] = np.bincount(out_indices, weights=specs[i,in_indices] * weights, minlength=self.detchans)
                 # out[i] = self._apply_rmf(specs[i])
-                out[i] = jax.numpy.zeros(self.detchans).at[out_indices].add(specs[i,in_indices] * weights)
+                out[i] = (
+                    jax.numpy.zeros(self.detchans)
+                    .at[out_indices]
+                    .add(specs[i, in_indices] * weights)
+                )
             # out = self._apply_rmf_vectorized(specs)
             return out
 
