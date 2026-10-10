@@ -111,6 +111,21 @@ Next, the vectorization is in simplev.py, which demonstrates the same as above p
 Next, there is simpleopt.py, which demonstrates optimized nested sampling (optNS).
 This is much faster, especially when there are many components with free normalisations.
 
+The ``tinyxspec`` command (also ``python -m tinyxsf.tinyxspec``) sets up a model
+interactively::
+
+    $ tinyxspec "ztbabs*(zpowerlw + pexmon)"
+
+It parses the model expression into a tree of additions, multiplications and
+convolutions (``convmodel{expression}``, as in XSPEC), and writes a
+``parameters.txt`` file that lists the model and all model parameters
+(`<component>:<parameter>`) with a prior each. The file is user-editable and
+preserved between runs: priors of parameters in the current model are reused,
+parameters not in the model are commented out (and reactivated if they
+re-appear), and missing parameters are added with default priors. Finally, 20
+points are sampled from the priors, the model is evaluated and the spectra are
+plotted.
+
 Take it for a spin and adapt it!
 
 Todo
