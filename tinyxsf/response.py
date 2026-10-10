@@ -266,7 +266,30 @@ class RMF(object):
 
         return n_grp, f_chan_flat, n_chan_flat, matrix_flat
 
-    def strip(self, channel_mask):
+    def strip(self, channel_mask, group_of_channel=None):
+        """Strip response matrix of entries outside the channel mask.
+
+        Parameters
+        ----------
+        channel_mask : array
+            Boolean array indicating which detector channel to keep.
+        group_of_channel : array of int, optional
+            Maps each detector channel to its output channel index after
+            grouping (OGIP grouping merges contiguous channel ranges),
+            or -1 to drop the channel. Matrix entries of channels in the
+            same group are summed, folding returns one entry per group
+            and detchans becomes the number of groups.
+
+        Returns
+        -------
+        energy_mask : array
+            Boolean array indicating which energy channels were kept.
+        """
+        if group_of_channel is None:
+            return self._strip_ungrouped(channel_mask)
+        return self._strip_grouped(channel_mask, group_of_channel)
+
+    def _strip_ungrouped(self, channel_mask):
         """Strip response matrix of entries outside the channel mask.
 
         Parameters
@@ -343,6 +366,105 @@ class RMF(object):
         i = np.argsort(out_indices)
         # self.dense_info = in_indices[i], out_indices[i], weights[i]
         self.dense_info = in_indices, out_indices, weights
+        self._compile()
+        return strip_mask
+
+    def _strip_grouped(self, channel_mask, group_of_channel):
+        """Strip response and merge detector channels into groups.
+
+        Like strip, but channels mapped to the same output index by
+        group_of_channel are combined: their matrix entries are summed
+        and they share one output channel. Folding then returns one
+        entry per group.
+
+        Parameters
+        ----------
+        channel_mask : array
+            Boolean array indicating which detector channel to keep.
+        group_of_channel : array of int
+            Output channel index per detector channel, or -1 to drop
+            the channel. Indices must be assigned in increasing channel
+            order (OGIP groups are contiguous channel ranges).
+
+        Returns
+        -------
+        energy_mask : array
+            Boolean array indicating which energy channels were kept.
+        """
+        group_of_channel = np.asarray(group_of_channel)
+        n_out = int(group_of_channel.max()) + 1
+        n_grp_new = np.zeros_like(self.n_grp)
+        n_chan_new = []
+        f_chan_new = []
+        matrix_new = []
+        energ_lo_new = []
+        energ_hi_new = []
+
+        in_indices = []
+        out_indices = []
+        weights = []
+        i_new = 0
+        k = 0
+        resp_idx = 0
+        # loop over all energy bins
+        for i in range(len(self.energ_lo)):
+            current_num_groups = self.n_grp[i]
+            # summed matrix entries per output (grouped) channel, in order
+            row_channels = []
+            row_values = []
+            # loop over the current number of groups
+            for current_num_chans, counts_idx in zip(
+                self.n_chan[k:k + current_num_groups],
+                self.f_chan[k:k + current_num_groups],
+            ):
+                inslice = slice(resp_idx, resp_idx + current_num_chans)
+                if current_num_chans > 0:
+                    chans = np.arange(counts_idx, counts_idx + current_num_chans)
+                    valid = np.asarray(channel_mask)[chans] & (group_of_channel[chans] >= 0)
+                    if valid.any():
+                        pos = np.flatnonzero(valid)
+                        # split into runs mapped to the same output channel
+                        outs = group_of_channel[chans[pos]]
+                        breaks = np.flatnonzero(np.diff(outs)) + 1
+                        starts = np.concatenate(([0], breaks))
+                        ends = np.concatenate((breaks, [len(pos)]))
+                        for s, e in zip(starts, ends):
+                            outch = int(outs[s])
+                            value = self.matrix[inslice][pos[s:e]].sum()
+                            if row_channels and row_channels[-1] == outch:
+                                # group continues over a block boundary
+                                row_values[-1] += value
+                            else:
+                                row_channels.append(outch)
+                                row_values.append(value)
+                resp_idx += current_num_chans
+
+            k += current_num_groups
+            if row_channels:
+                n_grp_new[i_new] = len(row_channels)
+                for outch, value in zip(row_channels, row_values):
+                    f_chan_new.append(outch)
+                    n_chan_new.append(1)
+                    matrix_new.append(np.array([value]))
+                    in_indices.append(i_new)
+                    out_indices.append(outch)
+                    weights.append(value)
+                energ_lo_new.append(self.energ_lo[i])
+                energ_hi_new.append(self.energ_hi[i])
+                i_new += 1
+
+        self.n_chan = np.array(n_chan_new)
+        self.f_chan = np.array(f_chan_new)
+
+        # cut down input array as well
+        strip_mask = n_grp_new > 0
+        self.n_grp = n_grp_new[strip_mask]
+        self.energ_lo = np.array(energ_lo_new)
+        self.energ_hi = np.array(energ_hi_new)
+
+        self.matrix = np.hstack(matrix_new)
+        self.detchans = n_out
+        self.dense_info = np.array(in_indices), np.array(out_indices), np.array(weights)
         self._compile()
         return strip_mask
 

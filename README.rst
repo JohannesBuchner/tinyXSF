@@ -61,6 +61,11 @@ Approach
    * Use BXA's autobackground folder to create a background spectral model from your background region.
    * Use BXA's galnh.py to fetch the galactic NH for the position of your observation and store it in my.pha.nh as a string (e.g. 1.2e20).
    * Store the redshift in my.pha.z as a string.
+   * Grouping: if the source spectrum has a GROUPING column (OGIP standard, e.g. written by
+     ``ftgrouppha``), the groups define the analysis bins on loading: source counts, background
+     counts, the RMF (matrix entries of grouped channels are summed) and the background model
+     sidecar are all combined consistently. Channels marked 0 in the GROUPING column or flagged
+     in a QUALITY column are ignored. The grouped example spectrum ``example/179_g3.pi`` shows this.
 
 4) We treat X-ray spectral fitting as a normal inference problem like any other!
 
@@ -110,6 +115,30 @@ Next, the vectorization is in simplev.py, which demonstrates the same as above p
 
 Next, there is simpleopt.py, which demonstrates optimized nested sampling (optNS).
 This is much faster, especially when there are many components with free normalisations.
+
+Next, simplesbi.py demonstrates simulation-based inference (SBI) with the new
+ultranest-sbi feature of the latest ultranest (>= 4.6, or install from source:
+``pip install git+https://github.com/JohannesBuchner/UltraNest``, and
+``pip install torch torchinfo``). It shows:
+
+* writing a mock spectrum generator that samples Poisson counts, consistent
+  with the Poisson likelihood
+* training a neural posterior estimator (NPE) on simulated spectra
+* checking the training with a rank histogram and coverage test
+* using the SBI posterior to warp the prior and run the SBI-accelerated
+  nested sampler (ultranest-sbi) with the exact Poisson likelihood
+
+Next, localmodel.py demonstrates using a compiled XSPEC local model (relxill) which is
+not part of XSPEC's model.dat. It shows:
+
+* preloading the model's shared library with ctypes before importing tinyxsf
+  (required: otherwise xspec_models_cxc fails to load its compiled interface)
+* listing the available model parameters, their order, defaults, units and ranges
+  with ``tinyxsf.x.info('relxill').parameters``
+* evaluating the model with tinyxsf, applying the norm externally
+  (it is not a model parameter)
+* plotting the unfolded (not folded through any instrument response) relxill
+  spectrum of a Gamma=2 powerlaw AGN for spin a=0 and a=0.998
 
 The ``tinyxspec`` command (also ``python -m tinyxsf.tinyxspec``) sets up a model
 interactively::

@@ -7,6 +7,8 @@ import numpy as np
 from astropy import units as u
 from astropy.cosmology import Planck18 as cosmo
 
+from .grouping import (bin_edges, get_bins, group_matrix, group_of_channel,
+                       read_grouping, sum_bins)
 from .hash import hashfile
 from .response import ARF, RMF, MockARF
 
@@ -52,6 +54,17 @@ def get_RMF(rmf_filename):
 def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_background=True):
     """Load PHA file.
 
+    If the source spectrum has a GROUPING column (OGIP standard), the
+    groups defined there are applied to everything on loading: the
+    source counts, the background counts, the RMF (matrix columns of
+    grouped channels are summed, folding returns one entry per group)
+    and the background model sidecar. Channels marked 0 in the GROUPING
+    column or flagged by a QUALITY column are excluded. Groups that
+    extend beyond the elo..ehi energy range contribute only the
+    channels inside the range. The grouping of the source spectrum
+    defines the bins; if the background file has its own GROUPING
+    column, it must be identical.
+
     Parameters
     ----------
     filename: str
@@ -72,7 +85,9 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
     Returns
     -------
     data: dict
-        All information about the observation.
+        All information about the observation. The 'grouping' key holds
+        the analysis bins as a list of channel index arrays (None if
+        the file has no GROUPING/QUALITY information).
     """
     path = os.path.dirname(filename)
     with pyfits.open(filename) as a:
@@ -82,6 +97,7 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
         areascal = header["AREASCAL"]
         channels = a["SPECTRUM"].data["CHANNEL"]
         fcounts = a["SPECTRUM"].data["COUNTS"]
+        grouping, quality = read_grouping(header, a["SPECTRUM"].data)
 
     backfile = os.path.join(path, header["BACKFILE"])
     rmffile = os.path.join(path, header["RESPFILE"])
@@ -94,6 +110,7 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
         bareascal = bheader["AREASCAL"]
         bchannels = b["SPECTRUM"].data["CHANNEL"]
         bfcounts = b["SPECTRUM"].data["COUNTS"]
+        bgrouping, _ = read_grouping(bheader, b["SPECTRUM"].data)
 
     assert (
         "RESPFILE" not in bheader or bheader["RESPFILE"] == header["RESPFILE"]
@@ -101,6 +118,9 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
     assert (
         "ANCRFILE" not in bheader or bheader["ANCRFILE"] == header["ANCRFILE"]
     ), "background must have same ARF"
+    if grouping is not None and bgrouping is not None:
+        assert np.array_equal(bgrouping, grouping), (
+            "background must have same grouping as source spectrum")
 
     ebounds = pyfits.getdata(rmffile, "EBOUNDS")
     chan_e_min = ebounds["E_MIN"]
@@ -120,7 +140,13 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
     assert (Nflux,) == aarf.e_low.shape == aarf.e_high.shape
     assert len(channels) == Nchan, (len(channels), Nchan)
 
-    strip_mask = armf.strip(mask)
+    # analysis bins from the OGIP grouping information (None: per channel)
+    bins = get_bins(grouping, quality, mask, Nchan)
+    if bins is None:
+        strip_mask = armf.strip(mask)
+    else:
+        mapping = group_of_channel(bins, Nchan)
+        strip_mask = armf.strip(mask, group_of_channel=mapping)
     aarf.strip(strip_mask)
     assert armf.energ_lo.shape == armf.energ_hi.shape == aarf.e_low.shape == aarf.e_high.shape
 
@@ -135,21 +161,37 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
     bcounts = bfcounts.astype(int)
     assert (bcounts == bfcounts).all()
 
+    if bins is None:
+        src_region_counts = counts[mask]
+        bkg_region_counts = bcounts[mask]
+        chan_mask = mask
+        data_chan_e_min = chan_e_min[mask]
+        data_chan_e_max = chan_e_max[mask]
+        rmf_matrix = m[:, mask][strip_mask, :]
+    else:
+        # counts, channel edges and response columns combined per bin
+        src_region_counts = sum_bins(counts, bins, dtype=int)
+        bkg_region_counts = sum_bins(bcounts, bins, dtype=int)
+        chan_mask = np.ones(len(bins), dtype=bool)
+        data_chan_e_min, data_chan_e_max = bin_edges(chan_e_min, chan_e_max, bins)
+        rmf_matrix = group_matrix(m, bins)[strip_mask, :]
+
     data = dict(
         Nflux=Nflux,
-        Nchan=mask.sum(),
-        src_region_counts=counts[mask],
-        bkg_region_counts=bcounts[mask],
-        chan_mask=mask,
+        Nchan=len(src_region_counts),
+        src_region_counts=src_region_counts,
+        bkg_region_counts=bkg_region_counts,
+        chan_mask=chan_mask,
+        grouping=bins,
         RMF_src=armf,
-        RMF=np.array(m[:, mask][strip_mask,:]),
+        RMF=np.array(rmf_matrix),
         ARF=np.array(aarf.specresp, dtype=float),
         e_lo=np.array(aarf.e_low),
         e_hi=np.array(aarf.e_high),
         e_delta=np.array(aarf.e_high - aarf.e_low),
         energies=np.append(aarf.e_low, aarf.e_high[-1]),
-        chan_e_min=chan_e_min[mask],
-        chan_e_max=chan_e_max[mask],
+        chan_e_min=data_chan_e_min,
+        chan_e_max=data_chan_e_max,
         src_expo=exposure,
         bkg_expo=bexposure,
         src_expoarea=exposure * areascal,
@@ -163,8 +205,12 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
 
     if os.path.exists(backfile + "_model.fits"):
         bkg_model = pyfits.getdata(backfile + "_model.fits", "SPECTRA")
-        data["bkg_model_bkg_region"] = np.array(bkg_model[0]["INTPSPEC"][mask])
-        data["bkg_model_src_region"] = np.array(bkg_model[1]["INTPSPEC"][mask])
+        if bins is None:
+            data["bkg_model_bkg_region"] = np.array(bkg_model[0]["INTPSPEC"][mask])
+            data["bkg_model_src_region"] = np.array(bkg_model[1]["INTPSPEC"][mask])
+        else:
+            data["bkg_model_bkg_region"] = sum_bins(bkg_model[0]["INTPSPEC"], bins)
+            data["bkg_model_src_region"] = sum_bins(bkg_model[1]["INTPSPEC"], bins)
     if os.path.exists(filename + ".nh") and load_absorption:
         data["galnh"] = float(np.loadtxt(filename + ".nh") / 1e22)
     if z is not None:
