@@ -58,8 +58,9 @@ Approach
 
 3) Some further niceties (all optional) include handling of backgrounds, redshifts and galactic NH:
 
-   * Use BXA's autobackground folder to create a background spectral model from your background region.
-   * Use BXA's galnh.py to fetch the galactic NH for the position of your observation and store it in my.pha.nh as a string (e.g. 1.2e20).
+   * Use ``tools/fitbkg.py`` (PCA) or ``tools/fitbkgkde.py`` (kernel density) to estimate a background spectral model
+     from your background region. The resulting ``<bkgfile>_model.fits`` is picked up automatically when loading.
+   * Use ``tools/gal.py`` to fetch the galactic NH for the position of your observation and store it in my.pha.nh as a string (e.g. 1.2e20).
    * Store the redshift in my.pha.z as a string.
    * Grouping: if the source spectrum has a GROUPING column (OGIP standard, e.g. written by
      ``ftgrouppha``), the groups define the analysis bins on loading: source counts, background
