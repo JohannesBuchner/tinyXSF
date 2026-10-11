@@ -6,4 +6,10 @@ jax
 ultranest
 h5py
 astropy
-xspec_models_cxc
+# xspec_models_cxc is not on PyPI; install from GitHub as documented in
+# the README. Building it requires the XSPEC model libraries, e.g. the
+# CXC xspec-modelsonly conda installation
+# (conda install -c https://cxc.cfa.harvard.edu/conda/ciao xspec-modelsonly)
+git+https://github.com/cxcsds/xspec-models-cxc
+# used by tests/test_table.py to fetch model tables
+requests
