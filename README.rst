@@ -79,9 +79,14 @@ Installation
 
 Quick version with conda/mamba::
 
-    $ conda create -n tinyXSF -c https://cxc.cfa.harvard.edu/conda/ciao -c xspec-modelsonly conda-forge astropy ultranest jax scikit-learn tqdm
+    $ conda create -n tinyXSF -c https://cxc.cfa.harvard.edu/conda/ciao -c conda-forge astropy ultranest jax scikit-learn tqdm xspec-modelsonly
     $ pip install git+https://github.com/cxcsds/xspec-models-cxc --verbose
     $ pip install git+https://github.com/JohannesBuchner/tinyXSF
+
+The XSPEC model libraries come from the ``xspec-modelsonly`` package on
+the CXC conda server (``https://cxc.cfa.harvard.edu/conda/ciao``), which
+``xspec_models_cxc`` builds against. The former ``xspec-modelsonly``
+channel on anaconda.org is no longer available.
 
 
 
