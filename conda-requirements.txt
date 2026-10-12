@@ -8,3 +8,6 @@ h5py
 astropy
 corner
 cosmolopy
+# XSPEC model libraries, needed to build xspec_models_cxc (see pip-requirements.txt);
+# channel given inline so 'mamba create --file' finds it without -c flags
+https://cxc.cfa.harvard.edu/conda/ciao::xspec-modelsonly
