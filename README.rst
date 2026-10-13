@@ -74,6 +74,12 @@ Approach
    legacy awkwardness such as chi-square, C-stat, 
    background-subtraction, identify matrix folding, multi-source to data mappings.
 
+   If you need it, ``tinyxsf.wstat`` computes the XSPEC wstat statistic
+   (profile Poisson likelihood with Poisson-distributed background, no
+   background model required), verified against XSPEC
+   (``wstat_xspec_check.py``) and against a numerical maximization of
+   the joint source+background likelihood (``tests/test_wstat.py``).
+
 Installation
 ------------
 

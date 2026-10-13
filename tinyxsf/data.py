@@ -196,6 +196,9 @@ def load_pha(filename, elo, ehi, load_absorption=True, z=None, require_backgroun
         bkg_expo=bexposure,
         src_expoarea=exposure * areascal,
         bkg_expoarea=bexposure * bareascal,
+        src_backscal=backscal,
+        bkg_backscal=bbackscal,
+        backscale_ratio=bbackscal / backscal,
         src_to_bkg_ratio=areascal / bareascal * backscal / bbackscal * exposure / bexposure,
     )
     data["chan_const_spec_weighting"] = data["RMF_src"].apply_rmf(

@@ -1,5 +1,6 @@
 """Statistical and astrophysical models."""
 import itertools
+import warnings
 
 import astropy.io.fits as pyfits
 import numpy as np
@@ -52,6 +53,148 @@ def logPoissonPDF(model, counts):
     """
     log_model = np.log(np.clip(model, 1e-100, None))
     return np.sum(log_model * counts) - model.sum()
+
+
+def wstat_vectorized(*, models, src_counts, bkg_counts, src_expoarea, bkg_expoarea, backscale_ratio=1.0):
+    """Compute the W statistic (Poisson likelihood with Poisson background).
+
+    The W statistic (XSPEC wstat) treats the background as Poisson-distributed
+    with an unknown level in each bin, which is profiled out of the likelihood
+    analytically (see https://heasarc.gsfc.nasa.gov/docs/software/xspec/manual/node393.html).
+    No background model is required, and no background counts are subtracted.
+    For each bin i, with source counts S_i, background-region counts B_i and
+    expected source model counts t_s m_i, the per-bin background amplitude is
+    replaced by its maximum likelihood estimate
+
+        f_i = (S_i + B_i - (t_s + t_b) m_i + d_i) / (2 (t_s + t_b))
+        d_i = sqrt([(t_s + t_b) m_i - S_i - B_i]^2 + 4 (t_s + t_b) B_i m_i)
+
+    where t_b is the background-region scaling relative to the source region
+    (t_b = bkg_expoarea * backscale_ratio). The profile likelihood is
+
+        W = 2 sum_i { t_s m_i + (t_s + t_b) f_i
+                      - S_i ln(t_s m_i + t_s f_i) - B_i ln(t_b f_i)
+                      - S_i (1 - ln S_i) - B_i (1 - ln B_i) }
+
+    with special cases for bins with zero counts. W is a likelihood ratio
+    against the saturated model, so it is non-negative, and at the best fit
+    W is approximately the number of analysis bins minus the number of free
+    parameters.
+
+    A warning is emitted if any bin has fewer than 3 background counts:
+    the profile-likelihood background treatment is biased in that case
+    (this is why XSPEC recommends regrouping to >= 3 background counts
+    per bin when using wstat).
+
+    Parameters
+    ----------
+    models: array
+        expected source model counts in the source region, i.e. the folded
+        model spectrum multiplied by src_expoarea.
+        shape is (num_models, len(src_counts)).
+    src_counts: array
+        observed source counts (non-negative integers)
+    bkg_counts: array
+        observed background counts in the background region
+        (non-negative integers)
+    src_expoarea: float or array
+        source exposure * areascal (t_s)
+    bkg_expoarea: float or array
+        background exposure * areascal
+    backscale_ratio: float or array
+        background backscal / source backscal (default 1)
+
+    Returns
+    -------
+    wstat: array
+        W statistic values, shape=(num_models,). For sampling,
+        -wstat/2 is the profiled log-likelihood up to constants that
+        depend only on the data.
+    """
+    M = np.clip(np.asarray(models, dtype=float), 0, None)
+    S = np.asarray(src_counts, dtype=float).reshape(1, -1)
+    B = np.asarray(bkg_counts, dtype=float).reshape(1, -1)
+    if (B < 3).any():
+        warnings.warn(
+            "wstat is biased when a bin has fewer than 3 background counts "
+            "(the profile-likelihood background treatment misbehaves for small "
+            "background numbers); consider regrouping the spectrum so that every "
+            "bin has at least 3 background counts (e.g. with ftgrouppha "
+            "grouptype=bmin groupscale=3)", RuntimeWarning)
+    ts = np.asarray(src_expoarea, dtype=float)
+    tb = np.asarray(bkg_expoarea, dtype=float) * np.asarray(backscale_ratio, dtype=float)
+    assert np.all(ts > 0) and np.all(tb > 0), "expoareas must be positive"
+
+    total_expoarea = ts + tb
+    mrate = M / ts
+    ln_S = np.log(np.where(S > 0, S, 1.0))
+    ln_B = np.log(np.where(B > 0, B, 1.0))
+
+    # general case: S > 0 and B > 0
+    # f_i as given above; f_i > 0 whenever B > 0, so the clipped
+    # logarithms below only guard against numerical underflow
+    total_expoarea_mrate = total_expoarea * mrate
+    tmp1 = total_expoarea_mrate - S - B
+    dsubi = np.sqrt(tmp1 * tmp1 + 4 * total_expoarea * B * mrate)
+    fsubi = (S + B - total_expoarea_mrate + dsubi) / (2 * total_expoarea)
+    f = (
+        M + total_expoarea * fsubi
+        - S * np.log(np.clip(M + ts * fsubi, 1e-100, None))
+        - B * np.log(np.clip(tb * fsubi, 1e-100, None))
+        - S * (1 - ln_S)
+        - B * (1 - ln_B)
+    )
+
+    # S == 0: f_i -> B_i / (t_s + t_b) if B_i > 0, and the B_i terms cancel;
+    # if B_i == 0 the log term vanishes, leaving W_i = 2 t_s m_i
+    f = np.where(S == 0, M - B * np.log(tb / total_expoarea), f)
+
+    # B == 0 (and S > 0): if m_i < S_i/(t_s + t_b), f_i = S_i/(t_s + t_b) - m_i,
+    # otherwise f_i = 0 and the S_i terms form the Poisson deviance
+    bkg0 = np.where(
+        mrate < S / total_expoarea,
+        -tb * mrate - S * np.log(ts / total_expoarea),
+        M + S * (ln_S - np.log(np.clip(M, 1e-100, None)) - 1),
+    )
+    f = np.where(np.logical_and(S > 0, B == 0), bkg0, f)
+    return 2 * f.sum(axis=1)
+
+
+def wstat(*, model, src_counts, bkg_counts, src_expoarea, bkg_expoarea, backscale_ratio=1.0):
+    """Compute the W statistic (Poisson likelihood with Poisson background).
+
+    See wstat_vectorized for a description.
+
+    Parameters
+    ----------
+    model: array
+        expected source model counts in the source region, i.e. the folded
+        model spectrum multiplied by src_expoarea
+    src_counts: array
+        observed source counts (non-negative integers)
+    bkg_counts: array
+        observed background counts in the background region
+        (non-negative integers)
+    src_expoarea: float or array
+        source exposure * areascal (t_s)
+    bkg_expoarea: float or array
+        background exposure * areascal
+    backscale_ratio: float or array
+        background backscal / source backscal (default 1)
+
+    Returns
+    -------
+    wstat: float
+        W statistic value. At the best fit, W is approximately the
+        number of analysis bins minus the number of free parameters.
+        -wstat/2 is the profiled log-likelihood up to constants that
+        depend only on the data.
+    """
+    return wstat_vectorized(
+        models=np.asarray(model, dtype=float).reshape(1, -1),
+        src_counts=src_counts, bkg_counts=bkg_counts,
+        src_expoarea=src_expoarea, bkg_expoarea=bkg_expoarea,
+        backscale_ratio=backscale_ratio)[0]
 
 
 def logNegBinomialPDF_vectorized(model, counts, k):
