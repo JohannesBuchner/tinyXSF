@@ -56,7 +56,6 @@ jobs:
           env &&
           echo "--- Environment dump end ---" &&
           pip install git+https://github.com/JohannesBuchner/coverage-lcov &&
-          sudo sed -i '/PDF/s/none/read|write/' /etc/ImageMagick-6/policy.xml &&
           pip uninstall -y h5py &&
           pip install --no-cache-dir -r pip-requirements.txt git+https://github.com/cxcsds/xspec-models-cxc
 
