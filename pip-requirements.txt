@@ -6,5 +6,4 @@ jax
 ultranest
 h5py
 astropy
-xspec_models_cxc
 git+https://github.com/cxcsds/xspec-models-cxc
