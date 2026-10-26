@@ -225,9 +225,8 @@ np.savetxt(f'{outprefix}/chains/intrinsic_photon_flux.txt.gz', np.transpose([
 ]))
 
 # compute luminosity:
-import cosmolopy.distance as cd
-cosmo = {'omega_M_0' : 0.3, 'omega_lambda_0' : 0.7, 'h' : 0.7} # standard
-cosmo = cd.set_omega_k_0(cosmo)
-dist = cd.quick_distance_function(cd.luminosity_distance, zmax=8, **cosmo)
-L = (hard_flux_restintr * (4 * np.pi * (dist(z) * u.Mpc)**2)).to(u.erg / u.s)
+from astropy.cosmology import LambdaCDM
+cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7) # standard
+dist = cosmo.luminosity_distance(z)
+L = (hard_flux_restintr * (4 * np.pi * dist**2)).to(u.erg / u.s)
 print('hard luminosity:', L.min(), L.max(), L.mean(), L.std())

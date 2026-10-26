@@ -7,6 +7,5 @@ ultranest
 h5py
 astropy
 corner
-cosmolopy
 https://cxc.cfa.harvard.edu/conda/ciao/::xspec-modelsonly
 requests
