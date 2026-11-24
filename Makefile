@@ -100,3 +100,10 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	$(PYTHON) -m pip install .
+	$(PYTHON) -m pip install --no-cache-dir pybind11 parse-xspec xspec-models-cxc-helpers
+	# xspec_models_cxc is not on PyPI; build it against the XSPEC provided
+	# by the xspec-modelsonly conda package (see conda-requirements.txt).
+	# Needs --no-build-isolation: its setup.py runs helper scripts with the
+	# active interpreter, which must see the already-installed build
+	# dependencies.
+	$(PYTHON) -m pip install --no-cache-dir --no-build-isolation git+https://github.com/cxcsds/xspec-models-cxc
