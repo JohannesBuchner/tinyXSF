@@ -6,4 +6,3 @@ jax
 ultranest
 h5py
 astropy
-xspec_models_cxc

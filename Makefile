@@ -100,3 +100,22 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	$(PYTHON) -m pip install .
+	# xspec_models_cxc is not on PyPI; build it from the git repository
+	# (this needs the XSPEC model library from the heasoft package, with
+	# HEADAS set, which the CI harness provides via `mamba run`). It is
+	# built after `pip install .` so that it is compiled against the
+	# numpy version that the environment ends up with.
+	# The xspec-models-cxc-helpers package expects the CXC xspec-modelsonly
+	# conda layout, while the heasoft package uses the HEASARC layout, so
+	# add compatibility symlinks: the helpers look for the XSPEC model
+	# database at $$HEADAS/../spectral/manager/model.dat (the heasoft
+	# package places it inside $$HEADAS), and for the linker name
+	# libwcs.so (the heasoft package only ships libwcs.<version>.so).
+	if [ -n "$$HEADAS" ] && [ ! -e "$$HEADAS/../spectral" ]; then ln -sfn "$$HEADAS/spectral" "$$HEADAS/../spectral"; fi
+	if [ -n "$$HEADAS" ] && [ ! -e "$$HEADAS/lib/libwcs.so" ]; then (cd "$$HEADAS/lib" && ln -sfn "$$(ls libwcs.*.so | head -1)" libwcs.so); fi
+	# g++ writes the temporary assembly file for the large generated
+	# module to $TMPDIR, which defaults to /tmp; that filesystem can be a
+	# small tmpfs, so keep the build temporaries next to the checkout
+	mkdir -p .pipbuildtmp
+	TMPDIR="$$(pwd)/.pipbuildtmp" $(PYTHON) -m pip install "xspec-models-cxc @ git+https://github.com/JohannesBuchner/xspec-models-cxc"
+	rm -rf .pipbuildtmp

@@ -8,3 +8,7 @@ h5py
 astropy
 corner
 cosmolopy
+# xspec-models-cxc (built by the install target in the Makefile) needs
+# XSPEC 12.x: heasoft 6.37 ships XSPEC 13.0.1, whose model.dat file the
+# parse-xspec package used at build time cannot read
+https://heasarc.gsfc.nasa.gov/FTP/software/conda/::heasoft=6.36
