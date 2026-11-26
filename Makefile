@@ -81,7 +81,6 @@ docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/tinyxsf.rst
 	rm -f docs/modules.rst
 	rm -f docs/API.rst
-	python3 setup.py build_ext --inplace
 	sphinx-apidoc -H API -o docs/ tinyxsf
 	cd docs; python3 modoverview.py
 	$(MAKE) -C docs clean
