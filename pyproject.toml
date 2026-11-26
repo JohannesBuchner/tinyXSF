@@ -16,6 +16,13 @@ authors = [
 ]
 keywords = ["astronomy", "X-ray", "spectroscopy", "spectral fitting", "X-ray spectroscopy", "Bayesian inference", "astrophysics"]
 
+[tool.setuptools]
+# Declare the package explicitly: importing tinyxsf.model instantiates
+# joblib.Memory('.') which can create a stray 'joblib/' cache directory in
+# the source tree. Flat-layout auto-discovery then refuses to build with
+# "Multiple top-level packages discovered in a flat-layout: ['joblib', 'tinyxsf']".
+packages = ["tinyxsf"]
+
 [project.scripts]
 tinyxspec = "tinyxsf.tinyxspec:main"
 
